@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
@@ -45,7 +46,7 @@ fun DerrotaScreen(caballoGanador: String) {
             painter = painterResource(id = R.drawable.derrota),
             contentDescription = "Fondo derrota",
             modifier = Modifier.fillMaxSize(),
-            alignment = Alignment.Center
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop
         )
 
         // Contenido encima del fondo
@@ -83,4 +84,10 @@ fun DerrotaScreen(caballoGanador: String) {
             }
         }
     }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewDerrotaScreen() {
+    DerrotaScreen(caballoGanador = "Oros") // puedes usar cualquier valor válido
 }

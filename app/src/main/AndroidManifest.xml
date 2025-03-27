@@ -35,6 +35,12 @@
         <!-- Registramos GameActivity -->
         <activity android:name=".uii.GameActivity" android:exported="true" />
 
+        <!-- Registramos VictoriaActivity -->
+        <activity android:name=".uii.VictoriaActivity" />
+
+        <!-- Registramos DerrotaActivity -->
+        <activity android:name=".uii.DerrotaActivity" />
+
     </application>
 
 </manifest>

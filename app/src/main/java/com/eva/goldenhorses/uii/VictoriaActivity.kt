@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
@@ -46,7 +47,7 @@ fun VictoriaScreen(caballoPalo: String) {
             painter = painterResource(id = R.drawable.victoria),
             contentDescription = "Fondo victoria",
             modifier = Modifier.fillMaxSize(),
-            alignment = Alignment.Center
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop
         )
         // Contenido encima del fondo
         Column(
@@ -83,4 +84,9 @@ fun VictoriaScreen(caballoPalo: String) {
             }
         }
     }
+}
+@Preview(showBackground = true)
+@Composable
+fun PreviewVictoriaScreen() {
+    VictoriaScreen(caballoPalo = "Oros") // puedes usar cualquier valor válido
 }

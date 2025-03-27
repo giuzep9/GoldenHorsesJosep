@@ -94,40 +94,55 @@ fun GameScreen(jugador: Jugador) {
     var cartaSacada by remember { mutableStateOf<Carta?>(null) }
     var cartasGiradas by remember { mutableStateOf(mutableSetOf<Int>()) }
     var posicionesCaballos by remember {
-        mutableStateOf(
-            carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion })
+        mutableStateOf(carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion })
     }
+    var carreraFinalizada by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
     val imagenesCaballos = mapOf(
         "Oros" to R.drawable.imagen_oros,
         "Copas" to R.drawable.imagen_copas,
         "Bastos" to R.drawable.imagen_bastos,
         "Espadas" to R.drawable.imagen_espadas
     )
-    val context = LocalContext.current
+
+    LaunchedEffect(carreraFinalizada) {
+        if (carreraFinalizada) {
+            val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
+            jugador.actualizarMonedas(ganador)
+
+            val intent = if (jugador.palo == ganador) {
+                Intent(context, VictoriaActivity::class.java).apply {
+                    putExtra("jugador_palo", jugador.palo)
+                }
+            } else {
+                Intent(context, DerrotaActivity::class.java).apply {
+                    putExtra("caballo_ganador", ganador)
+                }
+            }
+
+            context.startActivity(intent)
+            (context as? Activity)?.finish()
+        }
+    }
+
     Box(
-        modifier = Modifier
-            .fillMaxSize()
+        modifier = Modifier.fillMaxSize()
     ) {
         // Imagen de fondo
         Image(
             painter = painterResource(id = R.drawable.pantalla_carrera),
             contentDescription = "Fondo de la pista",
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Transparent)
+            modifier = Modifier.fillMaxSize()
         )
 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(8.dp),
+            modifier = Modifier.fillMaxSize().padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // Fila superior con el mazo y la última carta extraída
+            // Mazo y carta sacada
             Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 110.dp),
+                modifier = Modifier.fillMaxWidth().padding(top = 110.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 cartaSacada?.let {
@@ -138,7 +153,6 @@ fun GameScreen(jugador: Jugador) {
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-
                 Image(
                     painter = painterResource(id = R.drawable.mazo),
                     contentDescription = "Mazo",
@@ -148,7 +162,7 @@ fun GameScreen(jugador: Jugador) {
 
             Spacer(modifier = Modifier.height(90.dp))
 
-            // Zona central con la pista de la carrera (cartas de retroceso + posiciones de caballos)
+            // Zona central (carrera)
             Box(
                 modifier = Modifier.weight(1f),
                 contentAlignment = Alignment.TopCenter
@@ -157,20 +171,19 @@ fun GameScreen(jugador: Jugador) {
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center
                 ) {
-                    // Cartas de retroceso alineadas verticalmente
+                    // Cartas de retroceso
                     Column(
                         modifier = Modifier.padding(end = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         carrera.obtenerCartasRetroceso().forEachIndexed { index, carta ->
-                            val posicionInversa =
-                                (carrera.obtenerCartasRetroceso().size - 1) - index
+                            val posicionInversa = (carrera.obtenerCartasRetroceso().size - 1) - index
                             val girada = cartasGiradas.contains(posicionInversa)
 
                             AnimatedVisibility(
                                 visible = true,
-                                enter = fadeIn(animationSpec = tween(500)) + scaleIn(),
-                                exit = fadeOut(animationSpec = tween(500)) + scaleOut()
+                                enter = fadeIn(tween(500)) + scaleIn(),
+                                exit = fadeOut(tween(500)) + scaleOut()
                             ) {
                                 Image(
                                     painter = painterResource(
@@ -183,7 +196,7 @@ fun GameScreen(jugador: Jugador) {
                         }
                     }
 
-                    // Muestra las posiciones de los caballos en la pista
+                    // Caballos en pista
                     val cartasRetroceso = carrera.obtenerCartasRetroceso()
                     Column(
                         modifier = Modifier
@@ -191,7 +204,6 @@ fun GameScreen(jugador: Jugador) {
                             .padding(top = 0.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        // Spacer para ajustar la posición inicial de los caballos
                         Spacer(modifier = Modifier.height((cartasRetroceso.size).dp))
 
                         for (nivel in cartasRetroceso.indices) {
@@ -200,8 +212,8 @@ fun GameScreen(jugador: Jugador) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .wrapContentWidth(Alignment.Start) // Que ocupe solo lo necesario
-                                    .offset(x = 45.dp), // Desplaza a la derecha sin reducir tamaño
+                                    .wrapContentWidth(Alignment.Start)
+                                    .offset(x = 45.dp),
                                 horizontalArrangement = Arrangement.spacedBy(24.dp)
                             ) {
                                 posicionesCaballos.forEach { (palo, posicion) ->
@@ -210,11 +222,11 @@ fun GameScreen(jugador: Jugador) {
                                             Image(
                                                 painter = painterResource(id = imagenId),
                                                 contentDescription = "Caballo $palo",
-                                                modifier = Modifier.size(50.dp) // Ajusta el tamaño según sea necesario
+                                                modifier = Modifier.size(50.dp)
                                             )
                                         }
                                     } else {
-                                        Spacer(modifier = Modifier.size(50.dp)) // Mantiene el mismo espacio sin imagen
+                                        Spacer(modifier = Modifier.size(50.dp))
                                     }
                                 }
                             }
@@ -225,12 +237,12 @@ fun GameScreen(jugador: Jugador) {
 
             Spacer(modifier = Modifier.height(5.dp))
 
-            // Caballos en la parte inferior
+            // Caballos al inicio
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .wrapContentWidth(Alignment.Start) // Que ocupe solo lo necesario
-                    .offset(x = 110.dp), // Desplaza a la derecha sin reducir tamaño
+                    .wrapContentWidth(Alignment.Start)
+                    .offset(x = 110.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 posicionesCaballos.keys.forEach { palo ->
@@ -244,46 +256,30 @@ fun GameScreen(jugador: Jugador) {
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón para sacar carta
+            // Botón sacar carta
             Box(
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                if (!carrera.esCarreraFinalizada()) {
+                if (!carreraFinalizada) {
                     Button(
                         onClick = {
                             cartaSacada = carrera.sacarCarta()
-                            carrera.moverCaballo(cartaSacada!!.palo)
+                            cartaSacada?.let {
+                                carrera.moverCaballo(it.palo)
+                                posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
 
-                            // Actualizar posiciones
-                            posicionesCaballos = carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion }
-
-                            // Girar cartas de retroceso si corresponde
-                            carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
-                                if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
-                                    cartasGiradas.add(index)
-                                    carrera.retrocederCaballo(carta.palo)
-                                    posicionesCaballos = carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion }
-                                }
-                            }
-
-                            // FINALIZA LA CARRERA
-                            if (carrera.esCarreraFinalizada()) {
-                                val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
-                                jugador.actualizarMonedas(ganador)
-
-                                val intent = if (jugador.palo == ganador) {
-                                    Intent(context, VictoriaActivity::class.java).apply {
-                                        putExtra("jugador_palo", jugador.palo)
-                                    }
-                                } else {
-                                    Intent(context, DerrotaActivity::class.java).apply {
-                                        putExtra("caballo_ganador", ganador)
+                                carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
+                                    if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
+                                        cartasGiradas.add(index)
+                                        carrera.retrocederCaballo(carta.palo)
+                                        posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
                                     }
                                 }
 
-                                context.startActivity(intent)
-                                (context as? Activity)?.finish()
+                                if (carrera.esCarreraFinalizada()) {
+                                    carreraFinalizada = true
+                                }
                             }
                         },
                         modifier = Modifier.padding(8.dp)
@@ -295,6 +291,7 @@ fun GameScreen(jugador: Jugador) {
         }
     }
 }
+
 
 // Animación del caballo moviéndose en el eje Y
 @Composable
