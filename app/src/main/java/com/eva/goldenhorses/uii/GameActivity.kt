@@ -11,6 +11,8 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -187,7 +189,7 @@ fun GameScreen(jugador: Jugador) {
                             ) {
                                 Image(
                                     painter = painterResource(
-                                        id = if (girada) obtenerImagenCarta(carta) else R.drawable.mazo
+                                        id = if (girada) obtenerImagenCarta(carta) else R.drawable.imgcarta
                                     ),
                                     contentDescription = "Carta Retroceso",
                                     modifier = Modifier.size(60.dp)
@@ -258,34 +260,43 @@ fun GameScreen(jugador: Jugador) {
 
             // Botón sacar carta
             Box(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .width(130.dp) // Limita el ancho del Box para que no afecte otros elementos
+                    .height(65.dp)
+                    .fillMaxWidth()
+                    .wrapContentSize(),
                 contentAlignment = Alignment.Center
             ) {
                 if (!carreraFinalizada) {
-                    Button(
-                        onClick = {
-                            cartaSacada = carrera.sacarCarta()
-                            cartaSacada?.let {
-                                carrera.moverCaballo(it.palo)
-                                posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
+                    Image(
+                        painter = painterResource(id = R.drawable.btn_carta),
+                        contentDescription = "Sacar Carta",
+                        modifier = Modifier
+                            .size(200.dp, 80.dp) // Ajusta el tamaño según sea necesario
+                            .wrapContentSize() // Evita que el botón se expanda más de su contenido
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() }, // Evita el efecto visual
+                                indication = null // Elimina la animación de clic
+                            ) {
+                                cartaSacada = carrera.sacarCarta()
+                                cartaSacada?.let {
+                                    carrera.moverCaballo(it.palo)
+                                    posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
 
-                                carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
-                                    if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
-                                        cartasGiradas.add(index)
-                                        carrera.retrocederCaballo(carta.palo)
-                                        posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
+                                    carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
+                                        if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
+                                            cartasGiradas.add(index)
+                                            carrera.retrocederCaballo(carta.palo)
+                                            posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
+                                        }
+                                    }
+
+                                    if (carrera.esCarreraFinalizada()) {
+                                        carreraFinalizada = true
                                     }
                                 }
-
-                                if (carrera.esCarreraFinalizada()) {
-                                    carreraFinalizada = true
-                                }
                             }
-                        },
-                        modifier = Modifier.padding(8.dp)
-                    ) {
-                        Text("Sacar Carta")
-                    }
+                    )
                 }
             }
         }
