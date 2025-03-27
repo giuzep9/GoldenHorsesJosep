@@ -1,0 +1,418 @@
+package com.eva.goldenhorses.uii
+
+import android.content.Context
+import android.content.Intent
+import android.os.Bundle
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.eva.goldenhorses.R
+import com.eva.goldenhorses.model.*
+
+class GameActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val nombre = intent.getStringExtra("jugador_nombre") ?: "Jugador"
+        val palo = intent.getStringExtra("jugador_palo") ?: "Oros"
+        val monedas = intent.getIntExtra("jugador_monedas", 100)
+        val apuestaCantidad = intent.getIntExtra("jugador_apuesta", 0)
+
+        val jugador = Jugador(nombre, palo, monedas)
+        jugador.realizarApuesta(palo, apuestaCantidad)
+
+        // Ensure system bars behavior is properly set
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+            view.setPadding(0, 0, 0, 0) // Remove any automatic padding
+            insets
+        }
+
+        setContent {
+            val context = LocalContext.current
+            GameScreenWithTopBar(jugador, context)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
+    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+    var isMusicMutedState by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
+    }
+
+    @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
+    Scaffold(
+        topBar = {
+            AppTopBar(
+                context = context,
+                isMusicMuted = isMusicMutedState,
+                onToggleMusic = { newState ->
+                    isMusicMutedState = newState
+                    sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
+                }
+            )
+        }
+    ) { paddingValues ->
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+        ) {
+            GameScreen(jugador) // Llamada a GameScreen dentro de GameScreenWithTopBar
+        }
+    }
+}
+@Composable
+fun GameScreen(jugador: Jugador) {
+    var carrera by remember { mutableStateOf(Carrera()) }
+    var mensajeVictoria by remember { mutableStateOf<String?>(null) }
+    var mostrarDialogoFinal by remember { mutableStateOf(false) }
+    var cartaSacada by remember { mutableStateOf<Carta?>(null) }
+    var cartasGiradas by remember { mutableStateOf(mutableSetOf<Int>()) }
+    var posicionesCaballos by remember {
+        mutableStateOf(
+            carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion })
+    }
+    val imagenesCaballos = mapOf(
+        "Oros" to R.drawable.imagen_oros,
+        "Copas" to R.drawable.imagen_copas,
+        "Bastos" to R.drawable.imagen_bastos,
+        "Espadas" to R.drawable.imagen_espadas
+    )
+    val context = LocalContext.current
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+    ) {
+        // Imagen de fondo
+        Image(
+            painter = painterResource(id = R.drawable.pantalla_carrera),
+            contentDescription = "Fondo de la pista",
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color.Transparent)
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            // Fila superior con el mazo y la última carta extraída
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 110.dp),
+                horizontalArrangement = Arrangement.End
+            ) {
+                cartaSacada?.let {
+                    Image(
+                        painter = painterResource(id = obtenerImagenCarta(it)),
+                        contentDescription = "Carta Jugada",
+                        modifier = Modifier.size(70.dp)
+                    )
+                    Spacer(modifier = Modifier.width(8.dp))
+                }
+
+                Image(
+                    painter = painterResource(id = R.drawable.mazo),
+                    contentDescription = "Mazo",
+                    modifier = Modifier.size(60.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(90.dp))
+
+            // Zona central con la pista de la carrera (cartas de retroceso + posiciones de caballos)
+            Box(
+                modifier = Modifier.weight(1f),
+                contentAlignment = Alignment.TopCenter
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    // Cartas de retroceso alineadas verticalmente
+                    Column(
+                        modifier = Modifier.padding(end = 16.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        carrera.obtenerCartasRetroceso().forEachIndexed { index, carta ->
+                            val posicionInversa =
+                                (carrera.obtenerCartasRetroceso().size - 1) - index
+                            val girada = cartasGiradas.contains(posicionInversa)
+
+                            AnimatedVisibility(
+                                visible = true,
+                                enter = fadeIn(animationSpec = tween(500)) + scaleIn(),
+                                exit = fadeOut(animationSpec = tween(500)) + scaleOut()
+                            ) {
+                                Image(
+                                    painter = painterResource(
+                                        id = if (girada) obtenerImagenCarta(carta) else R.drawable.mazo
+                                    ),
+                                    contentDescription = "Carta Retroceso",
+                                    modifier = Modifier.size(60.dp)
+                                )
+                            }
+                        }
+                    }
+
+                    // Muestra las posiciones de los caballos en la pista
+                    val cartasRetroceso = carrera.obtenerCartasRetroceso()
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(top = 0.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        // Spacer para ajustar la posición inicial de los caballos
+                        Spacer(modifier = Modifier.height((cartasRetroceso.size).dp))
+
+                        for (nivel in cartasRetroceso.indices) {
+                            val nivelInvertido = cartasRetroceso.size - 1 - nivel
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .wrapContentWidth(Alignment.Start) // Que ocupe solo lo necesario
+                                    .offset(x = 45.dp), // Desplaza a la derecha sin reducir tamaño
+                                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                            ) {
+                                posicionesCaballos.forEach { (palo, posicion) ->
+                                    if (posicion == nivelInvertido + 1 && nivelInvertido < cartasRetroceso.size) {
+                                        imagenesCaballos[palo]?.let { imagenId ->
+                                            Image(
+                                                painter = painterResource(id = imagenId),
+                                                contentDescription = "Caballo $palo",
+                                                modifier = Modifier.size(50.dp) // Ajusta el tamaño según sea necesario
+                                            )
+                                        }
+                                    } else {
+                                        Spacer(modifier = Modifier.size(50.dp)) // Mantiene el mismo espacio sin imagen
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(5.dp))
+
+            // Caballos en la parte inferior
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .wrapContentWidth(Alignment.Start) // Que ocupe solo lo necesario
+                    .offset(x = 110.dp), // Desplaza a la derecha sin reducir tamaño
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
+            ) {
+                posicionesCaballos.keys.forEach { palo ->
+                    Image(
+                        painter = painterResource(id = obtenerImagenCarta(Carta(palo, 11))),
+                        contentDescription = "Caballo $palo",
+                        modifier = Modifier.size(60.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Botón para sacar carta
+            Box(
+                modifier = Modifier.fillMaxWidth(),
+                contentAlignment = Alignment.Center
+            ) {
+                if (mensajeVictoria == null) {
+                    Button(
+                        onClick = {
+                            cartaSacada = carrera.sacarCarta()
+                            carrera.moverCaballo(cartaSacada!!.palo)
+
+                            // ACTUALIZAR POSICIONES PARA REFRESCAR LA UI
+                            posicionesCaballos =
+                                carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion }
+
+                            // Verificar si hay cartas de retroceso que deben girarse
+                            carrera.obtenerCartasRetroceso().reversed()
+                                .forEachIndexed { index, carta ->
+                                    if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(
+                                            index + 1
+                                        )
+                                    ) {
+                                        cartasGiradas.add(index)
+                                        println("🔄 Se gira la carta de retroceso ${carta.palo} en posición ${index + 1}")
+
+                                        // Aplicar retroceso al caballo que coincida con la carta girada
+                                        carrera.retrocederCaballo(carta.palo)
+                                        posicionesCaballos = carrera.obtenerEstadoCarrera()
+                                            .associate { it.palo to it.posicion }
+                                    }
+                                }
+
+                            if (carrera.esCarreraFinalizada()) {
+                                val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
+                                mensajeVictoria = "¡Ganó $ganador!"
+                                jugador.actualizarMonedas(ganador)
+                                mostrarDialogoFinal = true // Mostrar la pantalla final
+                            }
+                        },
+                        modifier = Modifier.padding(8.dp)
+                    ) {
+                        Text("Sacar Carta")
+                    }
+                }
+            }
+
+            // Mostrar el diálogo de la pantalla final cuando termine la carrera
+            if (mostrarDialogoFinal) {
+                PantallaFinal(
+                    mensaje = mensajeVictoria ?: "Error",
+                    onHomeClick = {
+                        val intent = Intent(context, HomeActivity::class.java)
+                        context.startActivity(intent)
+                    },
+                    onRestartClick = {
+                        val intent = Intent(context, PlayerSelectionActivity::class.java)
+                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+                        context.startActivity(intent)
+                    }
+                )
+            }
+        }
+    }
+}
+// Pantalla final con mensaje y botones de navegación
+@Composable
+fun PantallaFinal(
+    mensaje: String,
+    onHomeClick: () -> Unit,
+    onRestartClick: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { /* No se permite cerrar sin elegir una opción */ },
+        title = { Text(text = "Resultado de la Carrera", fontSize = 20.sp) },
+        text = { Text(text = mensaje, fontSize = 18.sp) },
+        confirmButton = {
+            Button(onClick = onRestartClick) {
+                Text("Volver a apostar")
+            }
+        },
+        dismissButton = {
+            Button(onClick = onHomeClick) {
+                Text("Ir al menú de inicio")
+            }
+        }
+    )
+}
+
+// Animación del caballo moviéndose en el eje Y
+@Composable
+fun AnimatedCaballo(caballo: Caballo) {
+    val animatedOffset by animateDpAsState(
+        targetValue = (-caballo.posicion * 60).dp, // Movimiento animado en el eje Y
+        animationSpec = tween(durationMillis = 1000)
+    )
+
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .offset(y = animatedOffset) // Se mueve de forma fluida en el eje Y
+            .padding(4.dp)
+    ) {
+        Image(
+            painter = painterResource(id = obtenerImagenCarta(Carta(caballo.palo, 11))),
+            contentDescription = "Caballo ${caballo.palo}",
+            modifier = Modifier.size(60.dp)
+        )
+    }
+}
+
+// Función para reiniciar el juego
+fun reiniciarJuego(context: Context) {
+    val intent = Intent(context, PlayerSelectionActivity::class.java)
+    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+    context.startActivity(intent)
+}
+
+// Función para obtener la imagen de una carta
+fun obtenerImagenCarta(carta: Carta): Int {
+    val nombreRecurso = "carta_${carta.palo.lowercase()}_${carta.valor}"
+    val resId = when (nombreRecurso) {
+        "carta_oros_1" -> R.drawable.carta_oros_1
+        "carta_oros_2" -> R.drawable.carta_oros_2
+        "carta_oros_3" -> R.drawable.carta_oros_3
+        "carta_oros_4" -> R.drawable.carta_oros_4
+        "carta_oros_5" -> R.drawable.carta_oros_5
+        "carta_oros_6" -> R.drawable.carta_oros_6
+        "carta_oros_7" -> R.drawable.carta_oros_7
+        "carta_oros_10" -> R.drawable.carta_oros_10
+        "carta_oros_11" -> R.drawable.caballo_oros
+        "carta_oros_12" -> R.drawable.carta_oros_12
+        "carta_copas_1" -> R.drawable.carta_copas_1
+        "carta_copas_2" -> R.drawable.carta_copas_2
+        "carta_copas_3" -> R.drawable.carta_copas_3
+        "carta_copas_4" -> R.drawable.carta_copas_4
+        "carta_copas_5" -> R.drawable.carta_copas_5
+        "carta_copas_6" -> R.drawable.carta_copas_6
+        "carta_copas_7" -> R.drawable.carta_copas_7
+        "carta_copas_10" -> R.drawable.carta_copas_10
+        "carta_copas_11" -> R.drawable.caballo_copas
+        "carta_copas_12" -> R.drawable.carta_copas_12
+        "carta_espadas_1" -> R.drawable.carta_espadas_1
+        "carta_espadas_2" -> R.drawable.carta_espadas_2
+        "carta_espadas_3" -> R.drawable.carta_espadas_3
+        "carta_espadas_4" -> R.drawable.carta_espadas_4
+        "carta_espadas_5" -> R.drawable.carta_espadas_5
+        "carta_espadas_6" -> R.drawable.carta_espadas_6
+        "carta_espadas_7" -> R.drawable.carta_espadas_7
+        "carta_espadas_10" -> R.drawable.carta_espadas_10
+        "carta_espadas_11" -> R.drawable.caballo_espadas
+        "carta_espadas_12" -> R.drawable.carta_espadas_12
+        "carta_bastos_1" -> R.drawable.carta_bastos_1
+        "carta_bastos_2" -> R.drawable.carta_bastos_2
+        "carta_bastos_3" -> R.drawable.carta_bastos_3
+        "carta_bastos_4" -> R.drawable.carta_bastos_4
+        "carta_bastos_5" -> R.drawable.carta_bastos_5
+        "carta_bastos_6" -> R.drawable.carta_bastos_6
+        "carta_bastos_7" -> R.drawable.carta_bastos_7
+        "carta_bastos_10" -> R.drawable.carta_bastos_10
+        "carta_bastos_11" -> R.drawable.caballo_bastos
+        "carta_bastos_12" -> R.drawable.carta_bastos_12
+        else -> R.drawable.mazo // Imagen por defecto si no encuentra la carta
+    }
+    return resId
+}
+@Preview(showBackground = true)
+@Composable
+fun PreviewGameScreen() {
+    val mockJugador = Jugador(nombre = "Jugador", palo = "Oros", monedas = 100)
+    GameScreen(jugador = mockJugador)
+}
+
