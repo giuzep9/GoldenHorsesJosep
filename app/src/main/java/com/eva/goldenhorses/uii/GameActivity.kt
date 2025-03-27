@@ -1,5 +1,6 @@
 package com.eva.goldenhorses.uii
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -36,7 +37,7 @@ class GameActivity : ComponentActivity() {
         val apuestaCantidad = intent.getIntExtra("jugador_apuesta", 0)
 
         val jugador = Jugador(nombre, palo, monedas)
-        jugador.realizarApuesta(palo, apuestaCantidad)
+        jugador.realizarApuesta(palo)
 
         // Ensure system bars behavior is properly set
         val controller = WindowInsetsControllerCompat(window, window.decorView)
@@ -74,7 +75,8 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
                 onToggleMusic = { newState ->
                     isMusicMutedState = newState
                     sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
-                }
+                },
+                jugador = jugador
             )
         }
     ) { paddingValues ->
@@ -89,8 +91,6 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
 @Composable
 fun GameScreen(jugador: Jugador) {
     var carrera by remember { mutableStateOf(Carrera()) }
-    var mensajeVictoria by remember { mutableStateOf<String?>(null) }
-    var mostrarDialogoFinal by remember { mutableStateOf(false) }
     var cartaSacada by remember { mutableStateOf<Carta?>(null) }
     var cartasGiradas by remember { mutableStateOf(mutableSetOf<Int>()) }
     var posicionesCaballos by remember {
@@ -249,38 +249,41 @@ fun GameScreen(jugador: Jugador) {
                 modifier = Modifier.fillMaxWidth(),
                 contentAlignment = Alignment.Center
             ) {
-                if (mensajeVictoria == null) {
+                if (!carrera.esCarreraFinalizada()) {
                     Button(
                         onClick = {
                             cartaSacada = carrera.sacarCarta()
                             carrera.moverCaballo(cartaSacada!!.palo)
 
-                            // ACTUALIZAR POSICIONES PARA REFRESCAR LA UI
-                            posicionesCaballos =
-                                carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion }
+                            // Actualizar posiciones
+                            posicionesCaballos = carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion }
 
-                            // Verificar si hay cartas de retroceso que deben girarse
-                            carrera.obtenerCartasRetroceso().reversed()
-                                .forEachIndexed { index, carta ->
-                                    if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(
-                                            index + 1
-                                        )
-                                    ) {
-                                        cartasGiradas.add(index)
-                                        println("🔄 Se gira la carta de retroceso ${carta.palo} en posición ${index + 1}")
+                            // Girar cartas de retroceso si corresponde
+                            carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
+                                if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
+                                    cartasGiradas.add(index)
+                                    carrera.retrocederCaballo(carta.palo)
+                                    posicionesCaballos = carrera.obtenerEstadoCarrera().associate { it.palo to it.posicion }
+                                }
+                            }
 
-                                        // Aplicar retroceso al caballo que coincida con la carta girada
-                                        carrera.retrocederCaballo(carta.palo)
-                                        posicionesCaballos = carrera.obtenerEstadoCarrera()
-                                            .associate { it.palo to it.posicion }
+                            // FINALIZA LA CARRERA
+                            if (carrera.esCarreraFinalizada()) {
+                                val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
+                                jugador.actualizarMonedas(ganador)
+
+                                val intent = if (jugador.palo == ganador) {
+                                    Intent(context, VictoriaActivity::class.java).apply {
+                                        putExtra("jugador_palo", jugador.palo)
+                                    }
+                                } else {
+                                    Intent(context, DerrotaActivity::class.java).apply {
+                                        putExtra("caballo_ganador", ganador)
                                     }
                                 }
 
-                            if (carrera.esCarreraFinalizada()) {
-                                val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
-                                mensajeVictoria = "¡Ganó $ganador!"
-                                jugador.actualizarMonedas(ganador)
-                                mostrarDialogoFinal = true // Mostrar la pantalla final
+                                context.startActivity(intent)
+                                (context as? Activity)?.finish()
                             }
                         },
                         modifier = Modifier.padding(8.dp)
@@ -289,47 +292,8 @@ fun GameScreen(jugador: Jugador) {
                     }
                 }
             }
-
-            // Mostrar el diálogo de la pantalla final cuando termine la carrera
-            if (mostrarDialogoFinal) {
-                PantallaFinal(
-                    mensaje = mensajeVictoria ?: "Error",
-                    onHomeClick = {
-                        val intent = Intent(context, HomeActivity::class.java)
-                        context.startActivity(intent)
-                    },
-                    onRestartClick = {
-                        val intent = Intent(context, PlayerSelectionActivity::class.java)
-                        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-                        context.startActivity(intent)
-                    }
-                )
-            }
         }
     }
-}
-// Pantalla final con mensaje y botones de navegación
-@Composable
-fun PantallaFinal(
-    mensaje: String,
-    onHomeClick: () -> Unit,
-    onRestartClick: () -> Unit
-) {
-    AlertDialog(
-        onDismissRequest = { /* No se permite cerrar sin elegir una opción */ },
-        title = { Text(text = "Resultado de la Carrera", fontSize = 20.sp) },
-        text = { Text(text = mensaje, fontSize = 18.sp) },
-        confirmButton = {
-            Button(onClick = onRestartClick) {
-                Text("Volver a apostar")
-            }
-        },
-        dismissButton = {
-            Button(onClick = onHomeClick) {
-                Text("Ir al menú de inicio")
-            }
-        }
-    )
 }
 
 // Animación del caballo moviéndose en el eje Y

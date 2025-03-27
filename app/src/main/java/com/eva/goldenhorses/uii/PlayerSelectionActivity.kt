@@ -1,6 +1,7 @@
 package com.eva.goldenhorses.uii
 
 import android.annotation.SuppressLint
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
@@ -71,22 +72,23 @@ fun PlayerSelectionScreenWithTopBar(context: Context) {
                     onToggleMusic = { newState ->
                         isMusicMutedState = newState
                         sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
-                    }
+                    },
+
                 )
             }
         ) { paddingValues ->
             PlayerSelectionScreen(
-                onPlayerSelected = { nombre, palo, apuesta ->
+                onPlayerSelected = { nombre, palo ->
                     val jugador = Jugador(nombre, palo, 100)
-                    jugador.realizarApuesta(palo, apuesta)
+                    jugador.realizarApuesta(palo)
 
                     val intent = Intent(context, GameActivity::class.java).apply {
                         putExtra("jugador_nombre", jugador.nombre)
                         putExtra("jugador_palo", jugador.palo)
                         putExtra("jugador_monedas", jugador.monedas)
-                        putExtra("jugador_apuesta", apuesta)
                     }
                     context.startActivity(intent)
+                    (context as? Activity)?.finish()
                 },
                 modifier = Modifier.padding(paddingValues)
             )
@@ -97,12 +99,11 @@ fun PlayerSelectionScreenWithTopBar(context: Context) {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerSelectionScreen(
-    onPlayerSelected: (String, String, Int) -> Unit,
+    onPlayerSelected: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var nombreJugador by remember { mutableStateOf("") }
     var paloSeleccionado by remember { mutableStateOf<String?>(null) }
-    var apuestaCantidad by remember { mutableStateOf("") }
     val context = LocalContext.current
     val palos = listOf("Oros", "Copas", "Bastos", "Espadas")
     val imagenesCaballos = mapOf(
@@ -169,24 +170,28 @@ fun PlayerSelectionScreen(
             Spacer(modifier = Modifier.weight(0.5f))
 
             Text(
-                text = "Realiza tu apuesta:",
-                fontSize = 36.sp,
-                color = Color.Black,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold) // Texto en negrita
+                text = "Tu apuesta:",
+                fontSize = 32.sp,
+                color = Color.Black
             )
-
             Spacer(modifier = Modifier.height(8.dp))
-            // Campo de texto para la apuesta
-            BasicTextField(
-                value = apuestaCantidad,
-                onValueChange = { apuestaCantidad = it },
-                textStyle = TextStyle(fontSize = 24.sp, color = Color.Black),
-                modifier = Modifier
-                    .width(300.dp)
-                    .height(50.dp)
-                    .background(Color.White, shape = MaterialTheme.shapes.medium)
-                    .padding(8.dp)
-            )
+
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_coins), // Usa tu imagen de monedas
+                    contentDescription = "Moneda",
+                    modifier = Modifier.size(30.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = "20",
+                    fontSize = 28.sp,
+                    color = Color.Black
+                )
+            }
+
 
             Spacer(modifier = Modifier.weight(3f))
             // Botón de jugar con imagen personalizada
@@ -196,11 +201,10 @@ fun PlayerSelectionScreen(
                 modifier = Modifier
                     .size(200.dp, 80.dp)
                     .clickable {
-                        val cantidad = apuestaCantidad.toIntOrNull() ?: 0
-                        if (paloSeleccionado == null || cantidad <= 0) {
+                        if (paloSeleccionado == null) {
                             Toast.makeText(context, "Por favor, completa todos los campos correctamente", Toast.LENGTH_SHORT).show()
                         } else {
-                            onPlayerSelected(nombreJugador, paloSeleccionado!!, cantidad)
+                            onPlayerSelected(nombreJugador, paloSeleccionado!!)
                         }
                     }
             )
@@ -212,6 +216,6 @@ fun PlayerSelectionScreen(
 @Composable
 fun PreviewPlayerSelectionScreen() {
     GoldenHorsesTheme {
-        PlayerSelectionScreen(onPlayerSelected = { _, _, _ -> })
+        PlayerSelectionScreen(onPlayerSelected = { _, _ -> })
     }
 }
