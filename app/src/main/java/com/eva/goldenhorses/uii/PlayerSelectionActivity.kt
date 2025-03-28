@@ -196,10 +196,10 @@ fun PlayerSelectionScreen(
             Spacer(modifier = Modifier.weight(3f))
             // Botón de jugar con imagen personalizada
             Image(
-                painter = painterResource(id = R.drawable.boton_jugar),
+                painter = painterResource(id = R.drawable.boton_apostar),
                 contentDescription = "Jugar",
                 modifier = Modifier
-                    .size(200.dp, 80.dp)
+                    .size(190.dp, 200.dp)
                     .clickable {
                         if (paloSeleccionado == null) {
                             Toast.makeText(context, "Por favor, completa todos los campos correctamente", Toast.LENGTH_SHORT).show()

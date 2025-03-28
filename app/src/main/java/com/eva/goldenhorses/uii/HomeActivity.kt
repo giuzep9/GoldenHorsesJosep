@@ -144,7 +144,7 @@ fun HomeScreen(onPlayClick: () -> Unit, modifier: Modifier = Modifier) {
                 modifier = Modifier.padding(10.dp),
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
             )
-
+            // Crear las variables y la lógica para que se sumen los valores cuando juegues
             // Games Played & Victories
             Text(text = "Número de partidas: 10", fontSize = 18.sp, color = Color.Black, modifier = Modifier.padding(bottom = 10.dp))
             Text(text = "Victorias: 5", fontSize = 18.sp, color = Color.Black, modifier = Modifier.padding(bottom = 32.dp))

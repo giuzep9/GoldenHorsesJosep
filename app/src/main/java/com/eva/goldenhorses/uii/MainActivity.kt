@@ -65,7 +65,7 @@ fun WelcomeScreen(onPlayClick: () -> Unit) {
         ) {
             // Botón con imagen
             Image(
-                painter = painterResource(id = R.drawable.boton_jugar),
+                painter = painterResource(id = R.drawable.boton_empezar),
                 contentDescription = "Botón JUGAR",
                 modifier = Modifier
                     .width(250.dp) // Ajusta el tamaño según la imagen
