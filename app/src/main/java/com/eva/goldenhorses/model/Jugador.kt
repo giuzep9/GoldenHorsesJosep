@@ -6,16 +6,21 @@ data class Jugador(
     var monedas: Int,
     var apuesta: Apuesta? = null
 ) {
-    fun realizarApuesta(caballo: String, cantidad: Int) {
-        if (cantidad <= monedas) {
-            monedas -= cantidad
-            apuesta = Apuesta(caballo, cantidad)
+    fun realizarApuesta(caballo: String) {
+        if (monedas <= 0) {
+            // Se le dan 20 monedas si no tiene nada
+            monedas += 20
         }
+
+        monedas -= 20
+        apuesta = Apuesta(caballo, 20)
     }
 
     fun actualizarMonedas(ganador: String) {
         apuesta?.let {
-            monedas += it.calcularGanancia(ganador)
+            if (it.caballo == ganador) {
+                monedas += 80 // Gana 20x4
+            }
             apuesta = null
         }
     }

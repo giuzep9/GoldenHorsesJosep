@@ -15,14 +15,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.MusicService
+import com.eva.goldenhorses.model.Jugador
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun AppTopBar(context: Context, isMusicMuted: Boolean, onToggleMusic: (Boolean) -> Unit) {
+fun AppTopBar(
+    context: Context,
+    isMusicMuted: Boolean,
+    onToggleMusic: (Boolean) -> Unit,
+    jugador: Jugador? = null // ✅ Lo hacemos opcional
+) {
     var showMenu by remember { mutableStateOf(false) }
 
     TopAppBar(
-        title = { /* Empty title */ },
+        title = { /* Puedes agregar un título si quieres */ },
         navigationIcon = {
             IconButton(onClick = { showMenu = true }) {
                 Image(
@@ -39,7 +45,7 @@ fun AppTopBar(context: Context, isMusicMuted: Boolean, onToggleMusic: (Boolean) 
                     text = { Text(if (isMusicMuted) "Unmute Music" else "Mute Music") },
                     onClick = {
                         val newState = !isMusicMuted
-                        onToggleMusic(newState) // Notify parent
+                        onToggleMusic(newState)
                         showMenu = false
 
                         val action = if (newState) "MUTE" else "UNMUTE"
@@ -52,16 +58,23 @@ fun AppTopBar(context: Context, isMusicMuted: Boolean, onToggleMusic: (Boolean) 
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color(0xFF000000), // Brownish color
+            containerColor = Color(0xFF000000),
             titleContentColor = Color.White
         ),
         actions = {
-            Image(
-                painter = painterResource(id = R.drawable.ic_coins),
-                contentDescription = "Coins Icon",
-                modifier = Modifier.size(24.dp)
-            )
-            Text(text = "100", color = Color.White, fontSize = 18.sp, modifier = Modifier.padding(8.dp))
+            if (jugador != null) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_coins),
+                    contentDescription = "Coins Icon",
+                    modifier = Modifier.size(24.dp)
+                )
+                Text(
+                    text = "${jugador.monedas}",
+                    color = Color.White,
+                    fontSize = 18.sp,
+                    modifier = Modifier.padding(8.dp)
+                )
+            }
         }
     )
 }
