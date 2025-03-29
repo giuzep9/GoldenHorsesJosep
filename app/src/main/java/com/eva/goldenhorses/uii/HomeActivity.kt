@@ -46,6 +46,12 @@ class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val nombreUsuario = intent.getStringExtra("nombre_usuario") ?: "Jugador"
+
+        setContent {
+            HomeScreenWithTopBar(this, nombreUsuario)
+        }
+
         // Ensure system bars behavior is properly set
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
@@ -61,12 +67,12 @@ class HomeActivity : ComponentActivity() {
         startService(musicIntent)
 
         setContent {
-            HomeScreenWithTopBar(this)
+            HomeScreenWithTopBar(this, nombreUsuario)
         }
     }
 }
 @Composable
-fun HomeScreenWithTopBar(context: Context) {
+fun HomeScreenWithTopBar(context: Context, nombreUsuario: String) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
 
@@ -95,6 +101,7 @@ fun HomeScreenWithTopBar(context: Context) {
                     onPlayClick = {
                         context.startActivity(Intent(context, PlayerSelectionActivity::class.java))
                     },
+                    nombreUsuario = nombreUsuario,
                     modifier = Modifier.fillMaxSize() // 🔹 Make sure it takes the full size
                 )
             }
@@ -103,7 +110,7 @@ fun HomeScreenWithTopBar(context: Context) {
 }
 
 @Composable
-fun HomeScreen(onPlayClick: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeScreen(onPlayClick: () -> Unit, nombreUsuario: String, modifier: Modifier = Modifier) {
 
     Box(
         modifier = modifier
@@ -139,8 +146,9 @@ fun HomeScreen(onPlayClick: () -> Unit, modifier: Modifier = Modifier) {
 
             // Username
             Text(
-                text = "Jugador",
-                fontSize = 50.sp, color = Color.Black,
+                text = nombreUsuario,
+                fontSize = 50.sp,
+                color = Color.Black,
                 modifier = Modifier.padding(10.dp),
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
             )
@@ -173,5 +181,8 @@ fun HomeScreen(onPlayClick: () -> Unit, modifier: Modifier = Modifier) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewHomeScreen() {
-    HomeScreen(onPlayClick = {})
+    HomeScreen(
+        onPlayClick = {},
+        nombreUsuario = "Paco"
+    )
 }

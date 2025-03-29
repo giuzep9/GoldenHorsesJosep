@@ -27,17 +27,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         setContent {
             GoldenHorsesTheme {
-                WelcomeScreen { navigateToHome() }
+                WelcomeScreen { navigateToLogin() }
             }
         }
     }
 
-    private fun navigateToPlayerSelection() {
-        val intent = Intent(this, PlayerSelectionActivity::class.java)
-        startActivity(intent)
-    }
-    private fun navigateToHome() { // Function was missing before
-        val intent = Intent(this, HomeActivity::class.java)
+    private fun navigateToLogin() {
+        val intent = Intent(this, LoginActivity::class.java)
         startActivity(intent)
     }
 }

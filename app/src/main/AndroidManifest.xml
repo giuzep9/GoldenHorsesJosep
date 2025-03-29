@@ -41,6 +41,9 @@
         <!-- Registramos DerrotaActivity -->
         <activity android:name=".uii.DerrotaActivity" />
 
+        <!-- Registramos LoginActivity -->
+        <activity android:name=".uii.LoginActivity" />
+
     </application>
 
 </manifest>
