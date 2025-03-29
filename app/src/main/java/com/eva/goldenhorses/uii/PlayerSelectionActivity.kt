@@ -107,10 +107,10 @@ fun PlayerSelectionScreen(
     val context = LocalContext.current
     val palos = listOf("Oros", "Copas", "Bastos", "Espadas")
     val imagenesCaballos = mapOf(
-        "Oros" to R.drawable.imagen_oros,
-        "Copas" to R.drawable.imagen_copas,
-        "Bastos" to R.drawable.imagen_bastos,
-        "Espadas" to R.drawable.imagen_espadas
+        "Oros" to R.drawable.cab_oros,
+        "Copas" to R.drawable.cab_copas,
+        "Bastos" to R.drawable.cab_bastos,
+        "Espadas" to R.drawable.cab_espadas
     )
 
     Box(
@@ -130,7 +130,8 @@ fun PlayerSelectionScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            Spacer(modifier = Modifier.weight(1.5f))
+            // Se usa un Spacer para desplazar el contenido hacia abajo
+            Spacer(modifier = Modifier.height(200.dp)) // Puedes ajustar esta altura según tus necesidades
 
             Text(
                 text = "Elige tu caballo",

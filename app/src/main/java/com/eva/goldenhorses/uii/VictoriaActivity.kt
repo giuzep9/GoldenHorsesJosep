@@ -44,7 +44,7 @@ fun VictoriaScreen(caballoPalo: String) {
     ) {
         // Imagen de fondo
         Image(
-            painter = painterResource(id = R.drawable.victoria),
+            painter = painterResource(id = R.drawable.fondo_victoria),
             contentDescription = "Fondo victoria",
             modifier = Modifier.fillMaxSize(),
             contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -55,8 +55,19 @@ fun VictoriaScreen(caballoPalo: String) {
                 .fillMaxSize()
                 .padding(32.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Top // Acomoda los elementos desde la parte superior
         ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo_victoria),
+                contentDescription = "Logo de victoria",
+                modifier = Modifier
+                    .width(500.dp)  // Ocupará el 100% del ancho de la pantalla
+                    .height(300.dp)  // Ajusta la altura de la imagen, puedes modificarla según sea necesario
+                    .padding(vertical = 0.dp)  // Espacio adicional entre el logo y otros elementos
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
             Text("¡Has ganado! 🎉", fontSize = 28.sp)
 
             Spacer(modifier = Modifier.height(24.dp))
@@ -85,6 +96,7 @@ fun VictoriaScreen(caballoPalo: String) {
         }
     }
 }
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewVictoriaScreen() {

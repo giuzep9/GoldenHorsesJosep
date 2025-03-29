@@ -32,10 +32,10 @@ class DerrotaActivity : ComponentActivity() {
 fun DerrotaScreen(caballoGanador: String) {
     val context = LocalContext.current
     val icono = when (caballoGanador) {
-        "Oros" -> R.drawable.imagen_oros
-        "Copas" -> R.drawable.imagen_copas
-        "Espadas" -> R.drawable.imagen_espadas
-        "Bastos" -> R.drawable.imagen_bastos
+        "Oros" -> R.drawable.cab_oros
+        "Copas" -> R.drawable.cab_copas
+        "Espadas" -> R.drawable.cab_espadas
+        "Bastos" -> R.drawable.cab_bastos
         else -> R.drawable.mazo
     }
     Box(
@@ -43,7 +43,7 @@ fun DerrotaScreen(caballoGanador: String) {
     ) {
         // Imagen de fondo
         Image(
-            painter = painterResource(id = R.drawable.derrota),
+            painter = painterResource(id = R.drawable.fondo_derrota),
             contentDescription = "Fondo derrota",
             modifier = Modifier.fillMaxSize(),
             contentScale = androidx.compose.ui.layout.ContentScale.Crop

@@ -49,29 +49,45 @@ fun WelcomeScreen(onPlayClick: () -> Unit) {
     ) {
         // Imagen de fondo
         Image(
-            painter = painterResource(id = R.drawable.fondo_inicio),
+            painter = painterResource(id = R.drawable.portada),
             contentDescription = "Fondo de la pantalla de inicio",
             modifier = Modifier.fillMaxSize(),
-            contentScale = androidx.compose.ui.layout.ContentScale.Crop // Ajusta la imagen para llenar la pantalla
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop
         )
 
-        // Contenedor para el botón
+        // Contenedor para logo y botón
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(bottom = 50.dp), // Ajusta la posición del botón
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Bottom // Para que el botón esté abajo
+            verticalArrangement = Arrangement.SpaceBetween // Distribuye el logo y el botón
         ) {
-            // Botón con imagen
+            // Logo en la parte superior
             Image(
-                painter = painterResource(id = R.drawable.boton_empezar),
-                contentDescription = "Botón JUGAR",
+                painter = painterResource(id = R.drawable.logo), // Asegúrate de tener esta imagen en drawable
+                contentDescription = "Logo del videojuego",
                 modifier = Modifier
-                    .width(250.dp) // Ajusta el tamaño según la imagen
-                    .height(100.dp)
-                    .clickable { onPlayClick() } // Hace que la imagen sea clickeable
+                    .width(450.dp) // Ajusta el tamaño del logo
+                    .height(325.dp)
+                    .padding(top = 50.dp) // Espacio superior
             )
+
+            // Espaciador para centrar el botón en la parte inferior
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                // Botón con imagen
+                Image(
+                    painter = painterResource(id = R.drawable.boton_empezar),
+                    contentDescription = "Botón JUGAR",
+                    modifier = Modifier
+                        .width(500.dp)
+                        .height(200.dp)
+                        .clickable { onPlayClick() }
+                )
+            }
         }
     }
 }
