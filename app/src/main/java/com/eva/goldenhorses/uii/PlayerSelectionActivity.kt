@@ -12,11 +12,13 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
@@ -170,27 +172,46 @@ fun PlayerSelectionScreen(
 
             Spacer(modifier = Modifier.weight(0.5f))
 
-            Text(
-                text = "Tu apuesta:",
-                fontSize = 32.sp,
-                color = Color.Black
-            )
-            Spacer(modifier = Modifier.height(8.dp))
+            // Aquí envuelves el contenido que quieres con el recuadro difuminado
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.6F)
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+                    .background(Color.White.copy(alpha = 0.5f)) // Fondo difuminado
+                    .clip(RoundedCornerShape(16.dp)) // Esquinas redondeadas
+                    .padding(24.dp) // Padding dentro del Box
+
             ) {
-                Image(
-                    painter = painterResource(id = R.drawable.ic_coins), // Usa tu imagen de monedas
-                    contentDescription = "Moneda",
-                    modifier = Modifier.size(30.dp)
-                )
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "20",
-                    fontSize = 28.sp,
-                    color = Color.Black
-                )
+                Column (
+                    horizontalAlignment = Alignment.CenterHorizontally, // Centra los elementos dentro del Box
+                    verticalArrangement = Arrangement.Center // Centra verticalmente
+                ) {
+                    Text(
+                        text = "Tu apuesta:",
+                        fontSize = 32.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Image(
+                            painter = painterResource(id = R.drawable.ic_coins), // Usa tu imagen de monedas
+                            contentDescription = "Moneda",
+                            modifier = Modifier.size(40.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "20",
+                            fontSize = 32.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        )
+                    }
+                }
             }
 
 

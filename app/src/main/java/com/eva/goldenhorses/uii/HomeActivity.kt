@@ -124,7 +124,7 @@ fun HomeScreen(onPlayClick: () -> Unit, modifier: Modifier = Modifier) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 120.dp),
+                .padding(top = 180.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // User Icon
