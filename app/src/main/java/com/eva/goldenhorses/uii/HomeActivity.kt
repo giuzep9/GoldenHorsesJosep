@@ -40,42 +40,63 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
+import com.eva.goldenhorses.data.AppDatabase
+import com.eva.goldenhorses.model.Jugador
+import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
+import com.eva.goldenhorses.viewmodel.JugadorViewModel
+import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 
 class HomeActivity : ComponentActivity() {
+
+    private lateinit var jugadorViewModel: JugadorViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Ensure system bars behavior is properly set
+        // Setup para barra de estado
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, 0, 0, 0) // Remove any automatic padding
+            view.setPadding(0, 0, 0, 0)
             insets
         }
 
-        // Start background music service
-        val musicIntent = Intent(this, MusicService::class.java)
-        startService(musicIntent)
+        // Música
+        startService(Intent(this, MusicService::class.java))
+
+        // ViewModel
+        val database = AppDatabase.getDatabase(applicationContext)
+        val repository = JugadorRepository(database.jugadorDAO())
+        val factory = JugadorViewModelFactory(repository)
+        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
+        // Nombre recibido
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
 
         setContent {
-            HomeScreenWithTopBar(this)
+            HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)
         }
     }
 }
+
 @Composable
-fun HomeScreenWithTopBar(context: Context) {
+fun HomeScreenWithTopBar(
+    context: Context,
+    viewModel: JugadorViewModel,
+    nombreJugador: String
+) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
+    var jugador by remember { mutableStateOf<Jugador?>(null) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(nombreJugador) {
+        jugador = viewModel.obtenerJugador(nombreJugador)
         isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
     }
 
     GoldenHorsesTheme {
-        @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
         Scaffold(
             topBar = {
                 AppTopBar(
@@ -84,94 +105,127 @@ fun HomeScreenWithTopBar(context: Context) {
                     onToggleMusic = { newState ->
                         isMusicMutedState = newState
                         sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
-                    }
+                    },
+                    jugador = jugador // ✅ Le pasamos el jugador cargado
                 )
             }
         ) { paddingValues ->
-            Box( // 🔹 Ensure full background coverage
-                modifier = Modifier.fillMaxSize()
-            ) {
-                HomeScreen(
-                    onPlayClick = {
-                        context.startActivity(Intent(context, PlayerSelectionActivity::class.java))
-                    },
-                    modifier = Modifier.fillMaxSize() // 🔹 Make sure it takes the full size
-                )
-            }
+            HomeScreen(
+                viewModel = viewModel,
+                nombreJugador = nombreJugador,
+                onPlayClick = {
+                    context.startActivity(Intent(context, PlayerSelectionActivity::class.java).apply {
+                        putExtra("jugador_nombre", nombreJugador)
+                    })
+                },
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(paddingValues)
+            )
         }
     }
+
 }
 
 @Composable
-fun HomeScreen(onPlayClick: () -> Unit, modifier: Modifier = Modifier) {
+fun HomeScreen(
+    viewModel: JugadorViewModel,
+    nombreJugador: String,
+    onPlayClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var partidas by remember { mutableStateOf(0) }
+    var victorias by remember { mutableStateOf(0) }
+
+    LaunchedEffect(nombreJugador) {
+        val jugador = viewModel.obtenerJugador(nombreJugador)
+        partidas = jugador?.partidas ?: 0
+        victorias = jugador?.victorias ?: 0
+    }
 
     Box(
         modifier = modifier
             .fillMaxSize()
             .background(Color.White)
     ) {
-        // Fondo personalizado
         Image(
             painter = painterResource(id = R.drawable.fondo_home),
             contentDescription = "Background",
-            modifier = Modifier
-                .fillMaxSize()
-                .matchParentSize(),
+            modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
 
-        // Centered Content
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(top = 120.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            // User Icon
             Image(
                 painter = painterResource(id = R.drawable.user_icon),
                 contentDescription = "User Icon",
                 modifier = Modifier
                     .size(200.dp)
-                    .clip(CircleShape), // Ensures rounded shape if needed
-                contentScale = ContentScale.Fit // Ensures the image fits properly
+                    .clip(CircleShape),
+                contentScale = ContentScale.Fit
             )
 
-            // Username
             Text(
-                text = "Jugador",
-                fontSize = 50.sp, color = Color.Black,
-                modifier = Modifier.padding(10.dp),
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                text = nombreJugador,
+                fontSize = 50.sp,
+                color = Color.Black,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.padding(10.dp)
             )
-            // Crear las variables y la lógica para que se sumen los valores cuando juegues
-            // Games Played & Victories
-            Text(text = "Número de partidas: 10", fontSize = 18.sp, color = Color.Black, modifier = Modifier.padding(bottom = 10.dp))
-            Text(text = "Victorias: 5", fontSize = 18.sp, color = Color.Black, modifier = Modifier.padding(bottom = 32.dp))
 
-            // Play Button
+            Text(text = "Número de partidas: $partidas", fontSize = 18.sp, color = Color.Black)
+            Text(text = "Victorias: $victorias", fontSize = 18.sp, color = Color.Black, modifier = Modifier.padding(bottom = 32.dp))
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 90.dp), // Ajusta la posición del botón
+                    .padding(bottom = 90.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom // Para que el botón esté abajo
+                verticalArrangement = Arrangement.Bottom
             ) {
-                // Botón con imagen
                 Image(
                     painter = painterResource(id = R.drawable.boton_jugar),
                     contentDescription = "Botón JUGAR",
                     modifier = Modifier
                         .size(200.dp, 80.dp)
-                        .clickable { onPlayClick() } // Hace que la imagen sea clickeable
+                        .clickable { onPlayClick() }
                 )
             }
         }
     }
 }
 
+
+
 @Preview(showBackground = true)
 @Composable
-fun PreviewHomeScreen() {
-    HomeScreen(onPlayClick = {})
+fun PreviewHomeScreenWithTopBar() {
+    // Fake ViewModel y repositorio como antes
+    val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
+        override suspend fun insertarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
+        override suspend fun obtenerJugador(nombre: String): com.eva.goldenhorses.model.Jugador? {
+            return com.eva.goldenhorses.model.Jugador(nombre = nombre, monedas = 100, partidas = 3, victorias = 2)
+        }
+        override suspend fun actualizarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
+    }
+
+    val fakeRepository = com.eva.goldenhorses.repository.JugadorRepository(fakeDAO)
+    val fakeViewModel = com.eva.goldenhorses.viewmodel.JugadorViewModel(fakeRepository)
+
+    val fakeContext = androidx.compose.ui.platform.LocalContext.current
+
+    GoldenHorsesTheme {
+        HomeScreenWithTopBar(
+            context = fakeContext,
+            viewModel = fakeViewModel,
+            nombreJugador = "JugadorDemo"
+        )
+    }
 }
+
+

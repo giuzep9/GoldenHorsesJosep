@@ -12,7 +12,6 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -21,7 +20,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -60,21 +58,31 @@ class PlayerSelectionActivity : ComponentActivity() {
         val factory = JugadorViewModelFactory(repository)
         jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: ""
+
         setContent {
-            PlayerSelectionScreenWithTopBar(context = this, viewModel = jugadorViewModel)
+            PlayerSelectionScreenWithTopBar(context = this, viewModel = jugadorViewModel, nombreJugador = nombreJugador)
         }
     }
 }
 
 @SuppressLint("CommitPrefEdits")
 @Composable
-fun PlayerSelectionScreenWithTopBar(context: Context, viewModel: JugadorViewModel) {
+fun PlayerSelectionScreenWithTopBar(
+    context: Context,
+    viewModel: JugadorViewModel,
+    nombreJugador: String
+)
+ {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(sharedPreferences.getBoolean("isMusicMuted", false)) }
 
-    LaunchedEffect(Unit) {
-        isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
-    }
+     val jugadorState = remember { mutableStateOf<Jugador?>(null) }
+
+     LaunchedEffect(nombreJugador) {
+         val jugador = viewModel.obtenerJugador(nombreJugador)
+         jugadorState.value = jugador
+     }
 
     Scaffold(
         topBar = {
@@ -84,30 +92,42 @@ fun PlayerSelectionScreenWithTopBar(context: Context, viewModel: JugadorViewMode
                 onToggleMusic = { newState ->
                     isMusicMutedState = newState
                     sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
-                }
+                },
+                jugador = jugadorState.value
             )
         }
     ) { paddingValues ->
         PlayerSelectionScreen(
+            nombreJugador = nombreJugador,
             viewModel = viewModel,
             onPlayerSelected = { nombre, palo ->
                 CoroutineScope(Dispatchers.IO).launch {
-                    val jugador = viewModel.obtenerJugador(nombre)
-                    val monedasActuales = jugador?.monedas ?: 100
+                    val jugadorExistente = viewModel.obtenerJugador(nombre)
+                    val monedasActuales = jugadorExistente?.monedas ?: 100
 
                     val nuevoJugador = Jugador(
                         nombre = nombre,
                         monedas = monedasActuales
                     ).apply {
-                        this.palo = palo  // Asignación directa porque está marcada como @Ignore
+                        this.palo = palo
+                        this.realizarApuesta(palo)
                     }
-                    nuevoJugador.realizarApuesta(palo)
+
+                    if (jugadorExistente != null) {
+                        viewModel.actualizarJugador(nuevoJugador)
+                    } else {
+                        viewModel.insertarJugador(nuevoJugador)
+                    }
+
+                    // ✅ Guardamos los nuevos datos (con monedas actualizadas) en la base de datos
+                    viewModel.actualizarJugador(nuevoJugador)
 
                     val intent = Intent(context, GameActivity::class.java).apply {
                         putExtra("jugador_nombre", nuevoJugador.nombre)
                         putExtra("jugador_palo", nuevoJugador.palo)
                         putExtra("jugador_monedas", nuevoJugador.monedas)
                     }
+
                     context.startActivity(intent)
                     (context as? Activity)?.finish()
                 }
@@ -117,13 +137,14 @@ fun PlayerSelectionScreenWithTopBar(context: Context, viewModel: JugadorViewMode
     }
 }
 
+
 @Composable
 fun PlayerSelectionScreen(
     viewModel: JugadorViewModel,
+    nombreJugador: String,
     onPlayerSelected: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var nombreJugador by remember { mutableStateOf("") }
     var paloSeleccionado by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
@@ -204,8 +225,8 @@ fun PlayerSelectionScreen(
                 modifier = Modifier
                     .size(190.dp, 200.dp)
                     .clickable {
-                        if (nombreJugador.isBlank() || paloSeleccionado == null) {
-                            Toast.makeText(context, "Introduce tu nombre y selecciona un caballo", Toast.LENGTH_SHORT).show()
+                        if (paloSeleccionado == null) {
+                            Toast.makeText(context, "Selecciona un caballo", Toast.LENGTH_SHORT).show()
                         } else {
                             onPlayerSelected(nombreJugador, paloSeleccionado!!)
                         }
@@ -221,24 +242,20 @@ fun PlayerSelectionScreen(
 @Composable
 fun PreviewPlayerSelectionScreen() {
     val fakeViewModel = remember {
-        // Fake DAO sin operaciones reales
         val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
             override suspend fun insertarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
             override suspend fun obtenerJugador(nombre: String): com.eva.goldenhorses.model.Jugador? = null
             override suspend fun actualizarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
         }
-
-        // Fake repository con ese DAO
         val fakeRepository = com.eva.goldenhorses.repository.JugadorRepository(fakeDAO)
-
-        // ViewModel usando el repositorio falso
         com.eva.goldenhorses.viewmodel.JugadorViewModel(fakeRepository)
     }
 
     GoldenHorsesTheme {
-        com.eva.goldenhorses.uii.PlayerSelectionScreen(
+        PlayerSelectionScreen(
             viewModel = fakeViewModel,
-            onPlayerSelected = { _, _ -> } // No hace nada en el preview
+            nombreJugador = "JugadorDemo",
+            onPlayerSelected = { _, _ -> }
         )
     }
 }

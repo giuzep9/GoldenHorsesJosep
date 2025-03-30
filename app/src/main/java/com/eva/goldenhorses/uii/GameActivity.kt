@@ -24,19 +24,27 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.R
+import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.*
+import com.eva.goldenhorses.repository.JugadorRepository
+import com.eva.goldenhorses.viewmodel.JugadorViewModel
+import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 
 class GameActivity : ComponentActivity() {
+
+    private lateinit var jugadorViewModel: JugadorViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val nombre = intent.getStringExtra("jugador_nombre") ?: "Jugador"
-        val palo = intent.getStringExtra("jugador_palo") ?: "Oros"
-        val monedas = intent.getIntExtra("jugador_monedas", 100)
-        val apuestaCantidad = intent.getIntExtra("jugador_apuesta", 0)
+        // 🔸 Recuperar el nombre del jugador del intent
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
 
-        val jugador = Jugador(nombre, monedas)
-        jugador.realizarApuesta(palo)
+        // 🔸 Inicializar ViewModel
+        val database = AppDatabase.getDatabase(applicationContext)
+        val repository = JugadorRepository(database.jugadorDAO())
+        val factory = JugadorViewModelFactory(repository)
+        jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
         // Ensure system bars behavior is properly set
         val controller = WindowInsetsControllerCompat(window, window.decorView)
@@ -49,8 +57,18 @@ class GameActivity : ComponentActivity() {
         }
 
         setContent {
-            val context = LocalContext.current
-            GameScreenWithTopBar(jugador, context)
+            val jugadorState = remember { mutableStateOf<Jugador?>(null) }
+
+            // 🔸 Cargar el jugador desde la base de datos
+            LaunchedEffect(nombreJugador) {
+                val jugador = jugadorViewModel.obtenerJugador(nombreJugador)
+                jugadorState.value = jugador
+            }
+
+            // 🔸 Si el jugador está listo, mostramos la pantalla
+            jugadorState.value?.let { jugador ->
+                GameScreenWithTopBar(jugador = jugador, context = this)
+            }
         }
     }
 }
@@ -136,12 +154,16 @@ fun GameScreen(jugador: Jugador) {
         )
 
         Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Mazo y carta sacada
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 110.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 110.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 cartaSacada?.let {
@@ -278,15 +300,21 @@ fun GameScreen(jugador: Jugador) {
                                 cartaSacada = carrera.sacarCarta()
                                 cartaSacada?.let {
                                     carrera.moverCaballo(it.palo)
-                                    posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
+                                    posicionesCaballos = carrera.obtenerEstadoCarrera()
+                                        .associate { c -> c.palo to c.posicion }
 
-                                    carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
-                                        if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
-                                            cartasGiradas.add(index)
-                                            carrera.retrocederCaballo(carta.palo)
-                                            posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
+                                    carrera.obtenerCartasRetroceso().reversed()
+                                        .forEachIndexed { index, carta ->
+                                            if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(
+                                                    index + 1
+                                                )
+                                            ) {
+                                                cartasGiradas.add(index)
+                                                carrera.retrocederCaballo(carta.palo)
+                                                posicionesCaballos = carrera.obtenerEstadoCarrera()
+                                                    .associate { c -> c.palo to c.posicion }
+                                            }
                                         }
-                                    }
 
                                     if (carrera.esCarreraFinalizada()) {
                                         carreraFinalizada = true
@@ -380,8 +408,18 @@ fun obtenerImagenCarta(carta: Carta): Int {
 }
 @Preview(showBackground = true)
 @Composable
-fun PreviewGameScreen() {
-    val mockJugador = Jugador(nombre = "Jugador", palo = "Oros", monedas = 100)
-    GameScreen(jugador = mockJugador)
-}
+fun PreviewGameScreenWithTopBar() {
+    // Jugador de prueba
+    val jugadorDemo = Jugador(
+        nombre = "JugadorDemo",
+        monedas = 100,
+        partidas = 5,
+        victorias = 2,
+        palo = "Oros"
+    )
 
+    // Contexto simulado solo para vista previa (no se usa realmente)
+    val fakeContext = LocalContext.current
+
+    GameScreenWithTopBar(jugador = jugadorDemo, context = fakeContext)
+}

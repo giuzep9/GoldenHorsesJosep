@@ -4,21 +4,31 @@ import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import com.eva.goldenhorses.R
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.repository.JugadorRepository
+import androidx.compose.material3.TextFieldDefaults
+
 
 class LoginActivity : ComponentActivity() {
 
@@ -59,40 +69,98 @@ fun LoginScreen(
     var nombreJugador by remember { mutableStateOf("") }
     val context = LocalContext.current
 
+    // Variable para ajustar posición vertical del campo de texto
+    var inputOffset by remember { mutableStateOf(0.dp) }
+
     Surface(modifier = Modifier.fillMaxSize()) {
-        Column(
-            modifier = Modifier
-                .padding(24.dp)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text("Introduce tu nombre", style = MaterialTheme.typography.headlineSmall)
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            TextField(
-                value = nombreJugador,
-                onValueChange = { nombreJugador = it },
-                label = { Text("Nombre del jugador") },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                modifier = Modifier.fillMaxWidth()
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Imagen de fondo
+            Image(
+                painter = painterResource(id = R.drawable.fondo_home),
+                contentDescription = "Fondo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize()
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
-
-            Button(
-                onClick = {
-                    if (nombreJugador.isNotBlank()) {
-                        viewModel.comprobarOInsertarJugador(nombreJugador)
-                        onLoginSuccess(nombreJugador)
-                    }
-                },
-                modifier = Modifier.fillMaxWidth()
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                verticalArrangement = Arrangement.SpaceBetween,
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                Text("Iniciar")
+                // 🔝 Imagen "identificate" arriba
+                Image(
+                    painter = painterResource(id = R.drawable.identificate),
+                    contentDescription = "Identifícate",
+                    modifier = Modifier
+                        .padding(top = 100.dp)
+                        .height(100.dp)
+                )
+
+                // 🎯 Input de nombre con ajuste dinámico
+                Column(
+                    modifier = Modifier
+                        .padding(top = inputOffset)
+                        .fillMaxWidth()
+                        .padding(horizontal = 24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    TextField(
+                        value = nombreJugador,
+                        onValueChange = { nombreJugador = it },
+                        placeholder = { Text("Nombre del jugador") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        colors = TextFieldDefaults.colors(
+                            unfocusedContainerColor = Color.White.copy(alpha = 0.95f),
+                            focusedContainerColor = Color.White
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                    )
+                }
+
+                // ⬇ Botón abajo
+                Image(
+                    painter = painterResource(id = R.drawable.boton_inicio),
+                    contentDescription = "Iniciar",
+                    modifier = Modifier
+                        .padding(bottom = 40.dp)
+                        .size(180.dp)
+                        .clickable {
+                            if (nombreJugador.isNotBlank()) {
+                                viewModel.comprobarOInsertarJugador(nombreJugador)
+                                onLoginSuccess(nombreJugador)
+                            }
+                        }
+                )
             }
+
         }
     }
 }
+
+
+
+
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun PreviewLoginScreen() {
+    // Fake DAO sin operaciones reales
+    val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
+        override suspend fun insertarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
+        override suspend fun obtenerJugador(nombre: String): com.eva.goldenhorses.model.Jugador? = null
+        override suspend fun actualizarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
+    }
+
+    val fakeRepository = com.eva.goldenhorses.repository.JugadorRepository(fakeDAO)
+    val fakeViewModel = com.eva.goldenhorses.viewmodel.JugadorViewModel(fakeRepository)
+
+    GoldenHorsesTheme {
+        LoginScreen(
+            viewModel = fakeViewModel,
+            onLoginSuccess = {} // No hace nada en el preview
+        )
+    }
+}
+

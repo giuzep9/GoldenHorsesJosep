@@ -25,6 +25,18 @@ class JugadorViewModel(private val repository: JugadorRepository) : ViewModel() 
         }
     }
 
+    fun actualizarJugador(jugador: Jugador) {
+        viewModelScope.launch {
+            repository.actualizarJugador(jugador)
+        }
+    }
+
+    fun insertarJugador(jugador: Jugador) {
+        viewModelScope.launch {
+            repository.insertarJugador(jugador)
+        }
+    }
+
     fun comprobarOInsertarJugador(nombre: String) {
         viewModelScope.launch {
             val jugadorExistente = repository.obtenerJugador(nombre)
