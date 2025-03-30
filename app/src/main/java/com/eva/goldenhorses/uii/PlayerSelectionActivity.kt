@@ -27,35 +27,48 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
-import com.eva.goldenhorses.MusicService
-import com.eva.goldenhorses.R
-import com.eva.goldenhorses.model.Jugador
-import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import androidx.core.view.WindowInsetsControllerCompat
+import com.eva.goldenhorses.R
+import com.eva.goldenhorses.data.AppDatabase
+import com.eva.goldenhorses.model.Jugador
+import com.eva.goldenhorses.repository.JugadorRepository
+import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
+import com.eva.goldenhorses.viewmodel.JugadorViewModel
+import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 
 class PlayerSelectionActivity : ComponentActivity() {
+
+    private lateinit var jugadorViewModel: JugadorViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Configure window insets behavior
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, 0, 0, 0) // Remove automatic padding
+            view.setPadding(0, 0, 0, 0)
             insets
         }
 
+        val database = AppDatabase.getDatabase(applicationContext)
+        val repository = JugadorRepository(database.jugadorDAO())
+        val factory = JugadorViewModelFactory(repository)
+        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
         setContent {
-            PlayerSelectionScreenWithTopBar(this)
+            PlayerSelectionScreenWithTopBar(context = this, viewModel = jugadorViewModel)
         }
     }
 }
 
 @SuppressLint("CommitPrefEdits")
 @Composable
-fun PlayerSelectionScreenWithTopBar(context: Context) {
+fun PlayerSelectionScreenWithTopBar(context: Context, viewModel: JugadorViewModel) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(sharedPreferences.getBoolean("isMusicMuted", false)) }
 
@@ -63,48 +76,57 @@ fun PlayerSelectionScreenWithTopBar(context: Context) {
         isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
     }
 
-    GoldenHorsesTheme {
-        Scaffold(
-            topBar = {
-                AppTopBar(
-                    context = context,
-                    isMusicMuted = isMusicMutedState,
-                    onToggleMusic = { newState ->
-                        isMusicMutedState = newState
-                        sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
-                    },
+    Scaffold(
+        topBar = {
+            AppTopBar(
+                context = context,
+                isMusicMuted = isMusicMutedState,
+                onToggleMusic = { newState ->
+                    isMusicMutedState = newState
+                    sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
+                }
+            )
+        }
+    ) { paddingValues ->
+        PlayerSelectionScreen(
+            viewModel = viewModel,
+            onPlayerSelected = { nombre, palo ->
+                CoroutineScope(Dispatchers.IO).launch {
+                    val jugador = viewModel.obtenerJugador(nombre)
+                    val monedasActuales = jugador?.monedas ?: 100
 
-                )
-            }
-        ) { paddingValues ->
-            PlayerSelectionScreen(
-                onPlayerSelected = { nombre, palo ->
-                    val jugador = Jugador(nombre, palo, 100)
-                    jugador.realizarApuesta(palo)
+                    val nuevoJugador = Jugador(
+                        nombre = nombre,
+                        monedas = monedasActuales
+                    ).apply {
+                        this.palo = palo  // Asignación directa porque está marcada como @Ignore
+                    }
+                    nuevoJugador.realizarApuesta(palo)
 
                     val intent = Intent(context, GameActivity::class.java).apply {
-                        putExtra("jugador_nombre", jugador.nombre)
-                        putExtra("jugador_palo", jugador.palo)
-                        putExtra("jugador_monedas", jugador.monedas)
+                        putExtra("jugador_nombre", nuevoJugador.nombre)
+                        putExtra("jugador_palo", nuevoJugador.palo)
+                        putExtra("jugador_monedas", nuevoJugador.monedas)
                     }
                     context.startActivity(intent)
                     (context as? Activity)?.finish()
-                },
-                modifier = Modifier.padding(paddingValues)
-            )
-        }
+                }
+            },
+            modifier = Modifier.padding(paddingValues)
+        )
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PlayerSelectionScreen(
+    viewModel: JugadorViewModel,
     onPlayerSelected: (String, String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var nombreJugador by remember { mutableStateOf("") }
     var paloSeleccionado by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+
     val palos = listOf("Oros", "Copas", "Bastos", "Espadas")
     val imagenesCaballos = mapOf(
         "Oros" to R.drawable.cab_oros,
@@ -114,12 +136,10 @@ fun PlayerSelectionScreen(
     )
 
     Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color.White) // Se usa un fondo base para evitar solapamientos
+        modifier = Modifier.fillMaxSize().background(Color.White)
     ) {
         Image(
-            painter = painterResource(id = R.drawable.fondo_home), // Fondo personalizado
+            painter = painterResource(id = R.drawable.fondo_home),
             contentDescription = "Fondo",
             contentScale = ContentScale.Crop,
             modifier = Modifier.fillMaxSize()
@@ -130,19 +150,12 @@ fun PlayerSelectionScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            // Se usa un Spacer para desplazar el contenido hacia abajo
-            Spacer(modifier = Modifier.height(200.dp)) // Puedes ajustar esta altura según tus necesidades
+            Spacer(modifier = Modifier.height(200.dp))
 
-            Text(
-                text = "Elige tu caballo",
-                fontSize = 36.sp,
-                color = Color.Black,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold) // Texto en negrita
-            )
+            Text("Elige tu caballo", fontSize = 36.sp, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Caballos como botones seleccionables
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.Center
@@ -152,7 +165,7 @@ fun PlayerSelectionScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .padding(8.dp)
-                            .clickable { paloSeleccionado = palo } // Seleccionar caballo
+                            .clickable { paloSeleccionado = palo }
                     ) {
                         Image(
                             painter = painterResource(id = imagenesCaballos[palo]!!),
@@ -170,53 +183,62 @@ fun PlayerSelectionScreen(
 
             Spacer(modifier = Modifier.weight(0.5f))
 
-            Text(
-                text = "Tu apuesta:",
-                fontSize = 32.sp,
-                color = Color.Black
-            )
+            Text("Tu apuesta:", fontSize = 32.sp, color = Color.Black)
             Spacer(modifier = Modifier.height(8.dp))
 
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Image(
-                    painter = painterResource(id = R.drawable.ic_coins), // Usa tu imagen de monedas
+                    painter = painterResource(id = R.drawable.ic_coins),
                     contentDescription = "Moneda",
                     modifier = Modifier.size(30.dp)
                 )
                 Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "20",
-                    fontSize = 28.sp,
-                    color = Color.Black
-                )
+                Text("20", fontSize = 28.sp, color = Color.Black)
             }
 
-
             Spacer(modifier = Modifier.weight(3f))
-            // Botón de jugar con imagen personalizada
+
             Image(
                 painter = painterResource(id = R.drawable.boton_apostar),
                 contentDescription = "Jugar",
                 modifier = Modifier
                     .size(190.dp, 200.dp)
                     .clickable {
-                        if (paloSeleccionado == null) {
-                            Toast.makeText(context, "Por favor, completa todos los campos correctamente", Toast.LENGTH_SHORT).show()
+                        if (nombreJugador.isBlank() || paloSeleccionado == null) {
+                            Toast.makeText(context, "Introduce tu nombre y selecciona un caballo", Toast.LENGTH_SHORT).show()
                         } else {
                             onPlayerSelected(nombreJugador, paloSeleccionado!!)
                         }
                     }
             )
+
             Spacer(modifier = Modifier.weight(1f))
         }
     }
 }
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewPlayerSelectionScreen() {
+    val fakeViewModel = remember {
+        // Fake DAO sin operaciones reales
+        val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
+            override suspend fun insertarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
+            override suspend fun obtenerJugador(nombre: String): com.eva.goldenhorses.model.Jugador? = null
+            override suspend fun actualizarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
+        }
+
+        // Fake repository con ese DAO
+        val fakeRepository = com.eva.goldenhorses.repository.JugadorRepository(fakeDAO)
+
+        // ViewModel usando el repositorio falso
+        com.eva.goldenhorses.viewmodel.JugadorViewModel(fakeRepository)
+    }
+
     GoldenHorsesTheme {
-        PlayerSelectionScreen(onPlayerSelected = { _, _ -> })
+        com.eva.goldenhorses.uii.PlayerSelectionScreen(
+            viewModel = fakeViewModel,
+            onPlayerSelected = { _, _ -> } // No hace nada en el preview
+        )
     }
 }

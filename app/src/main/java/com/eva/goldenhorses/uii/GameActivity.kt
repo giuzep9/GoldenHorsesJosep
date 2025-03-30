@@ -35,7 +35,7 @@ class GameActivity : ComponentActivity() {
         val monedas = intent.getIntExtra("jugador_monedas", 100)
         val apuestaCantidad = intent.getIntExtra("jugador_apuesta", 0)
 
-        val jugador = Jugador(nombre, palo, monedas)
+        val jugador = Jugador(nombre, monedas)
         jugador.realizarApuesta(palo)
 
         // Ensure system bars behavior is properly set
