@@ -20,16 +20,17 @@ import com.eva.goldenhorses.R
 class VictoriaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
         val caballoPalo = intent.getStringExtra("jugador_palo") ?: "Oros"
 
         setContent {
-            VictoriaScreen(caballoPalo = caballoPalo)
+            VictoriaScreen(caballoPalo = caballoPalo, nombreJugador = nombreJugador)
         }
     }
 }
 
 @Composable
-fun VictoriaScreen(caballoPalo: String) {
+fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
     val context = LocalContext.current
     val icono = when (caballoPalo) {
         "Oros" -> R.drawable.imagen_oros
@@ -81,7 +82,10 @@ fun VictoriaScreen(caballoPalo: String) {
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(onClick = {
-                context.startActivity(Intent(context, PlayerSelectionActivity::class.java))
+                val intent = Intent(context, PlayerSelectionActivity::class.java).apply {
+                    putExtra("jugador_nombre", nombreJugador)
+                }
+                context.startActivity(intent)
             }) {
                 Text("Volver a jugar")
             }
@@ -89,7 +93,10 @@ fun VictoriaScreen(caballoPalo: String) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(onClick = {
-                context.startActivity(Intent(context, HomeActivity::class.java))
+                val intent = Intent(context, HomeActivity::class.java).apply {
+                    putExtra("jugador_nombre", nombreJugador)
+                }
+                context.startActivity(intent)
             }) {
                 Text("Volver a Inicio")
             }
@@ -100,5 +107,5 @@ fun VictoriaScreen(caballoPalo: String) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewVictoriaScreen() {
-    VictoriaScreen(caballoPalo = "Oros") // puedes usar cualquier valor válido
+    VictoriaScreen(caballoPalo = "Oros", nombreJugador = "JugadorDemo")
 }
