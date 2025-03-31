@@ -54,18 +54,10 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(50.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top // Acomoda los elementos desde la parte superior
         ) {
-            Image(
-                painter = painterResource(id = R.drawable.logo_victoria),
-                contentDescription = "Logo de victoria",
-                modifier = Modifier
-                    .width(500.dp)  // Ocupará el 100% del ancho de la pantalla
-                    .height(300.dp)  // Ajusta la altura de la imagen, puedes modificarla según sea necesario
-                    .padding(vertical = 0.dp)  // Espacio adicional entre el logo y otros elementos
-            )
 
             Spacer(modifier = Modifier.height(2.dp))
 
