@@ -32,14 +32,17 @@ class Carrera {
     }
 
     fun moverCaballo(palo: String) {
+        if (ganador != null) return // Si ya hay ganador, no se mueve nada
+
         val caballo = caballos.find { it.palo == palo }
         caballo?.avanzar()
         actualizarCaballoUI()
 
-        if (caballo?.haCruzadoMeta(nivelMax) == true) {
+        if (caballo?.haCruzadoMeta(nivelMax) == true && ganador == null) {
             ganador = caballo
         }
     }
+
 
     fun todosCaballosAlNivel(nivel: Int): Boolean {
         println("Verificando si todos los caballos han alcanzado el nivel $nivel")
@@ -71,9 +74,9 @@ class Carrera {
     }
 
     fun esCarreraFinalizada(): Boolean {
-        ganador = caballos.find { it.posicion >= nivelMax }
         return ganador != null
     }
+
 
     fun sacarCarta(): Carta? {
         return mazo.sacarCarta()?.also {

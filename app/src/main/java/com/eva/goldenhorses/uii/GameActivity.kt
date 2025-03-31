@@ -306,22 +306,24 @@ fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
                             ) {
                                 cartaSacada = carrera.sacarCarta()
                                 cartaSacada?.let {
+                                    // Mover el caballo según la carta extraída
                                     carrera.moverCaballo(it.palo)
-                                    posicionesCaballos = carrera.obtenerEstadoCarrera()
-                                        .associate { c -> c.palo to c.posicion }
+                                    posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
 
-                                    carrera.obtenerCartasRetroceso().reversed()
-                                        .forEachIndexed { index, carta ->
-                                            if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(
-                                                    index + 1
-                                                )
-                                            ) {
-                                                cartasGiradas.add(index)
-                                                carrera.retrocederCaballo(carta.palo)
-                                                posicionesCaballos = carrera.obtenerEstadoCarrera()
-                                                    .associate { c -> c.palo to c.posicion }
-                                            }
+                                    // Si el juego ya ha finalizado, detén el proceso aquí
+                                    if (carrera.esCarreraFinalizada()) {
+                                        carreraFinalizada = true
+                                        return@clickable // Esto finaliza la ejecución de este bloque (dentro de la lambda del clickable)
+                                    }
+
+                                    // Solo si no ha finalizado, aplicar los retrocesos
+                                    carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
+                                        if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
+                                            cartasGiradas.add(index)
+                                            carrera.retrocederCaballo(carta.palo)
+                                            posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
                                         }
+                                    }
 
                                     if (carrera.esCarreraFinalizada()) {
                                         carreraFinalizada = true
