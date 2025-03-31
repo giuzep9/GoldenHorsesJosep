@@ -119,7 +119,7 @@ fun PlayerSelectionScreenWithTopBar(
                         victorias = victoriasActuales
                     ).apply {
                         this.palo = palo
-                        this.realizarApuesta(palo)
+                       // this.realizarApuesta(palo)
                     }
 
                     if (jugadorExistente != null) {
