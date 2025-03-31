@@ -2,7 +2,6 @@ package com.eva.goldenhorses.uii
 
 import android.content.Intent
 import android.os.Bundle
-import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -20,20 +19,22 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
+import com.eva.goldenhorses.SessionManager
 
 class DerrotaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
         val ganador = intent.getStringExtra("caballo_ganador") ?: "Oros"
 
         setContent {
-            DerrotaScreen(caballoGanador = ganador)
+            DerrotaScreen(caballoGanador = ganador, nombreJugador = nombreJugador)
         }
     }
 }
 
 @Composable
-fun DerrotaScreen(caballoGanador: String) {
+fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
     val context = LocalContext.current
     val icono = when (caballoGanador) {
         "Oros" -> R.drawable.cab_oros
@@ -42,9 +43,8 @@ fun DerrotaScreen(caballoGanador: String) {
         "Bastos" -> R.drawable.cab_bastos
         else -> R.drawable.mazo
     }
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+
+    Box(modifier = Modifier.fillMaxSize()) {
         // Imagen de fondo
         Image(
             painter = painterResource(id = R.drawable.fondo_derrota),
@@ -52,30 +52,28 @@ fun DerrotaScreen(caballoGanador: String) {
             modifier = Modifier.fillMaxSize(),
             contentScale = androidx.compose.ui.layout.ContentScale.Crop
         )
+
+        // Contenedor central con fondo semitransparente
         Box(
             modifier = Modifier
-                .fillMaxWidth(0.8f)  // Asegura que ocupe todo el ancho
-                .heightIn(max = 425.dp) // Limita la altura máxima
-                .background(Color.White.copy(alpha = 0.8f)) // Fondo blanco con opacidad del 50%
-
-                .align(Alignment.Center) // Centra el contenido
+                .fillMaxWidth(0.8f)
+                .heightIn(max = 425.dp)
+                .background(Color.White.copy(alpha = 0.8f))
+                .align(Alignment.Center)
                 .padding(32.dp)
         ) {
-            // Contenido centralizado
             Column(
                 modifier = Modifier.fillMaxSize(),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Spacer(modifier = Modifier.height(2.dp))
-
-                Text("El ganador ha sido: ", fontSize = 28.sp)
+                Text("Has perdido 😢", fontSize = 28.sp)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
                 Image(
                     painter = painterResource(id = icono),
-                    contentDescription = "Tu caballo ganador",
+                    contentDescription = "Caballo ganador",
                     modifier = Modifier.size(120.dp)
                 )
 
@@ -85,11 +83,14 @@ fun DerrotaScreen(caballoGanador: String) {
                     painter = painterResource(id = R.drawable.volver_jugar),
                     contentDescription = "Volver a Jugar",
                     modifier = Modifier
-                        .fillMaxWidth(0.55f) // 80% del ancho disponible
-                       // .aspectRatio(f) // Mantiene la proporción cuadrada
-                        .clickable { context.startActivity(Intent(context, PlayerSelectionActivity::class.java)) }
+                        .fillMaxWidth(0.55f)
+                        .clickable {
+                            val intent = Intent(context, PlayerSelectionActivity::class.java).apply {
+                                putExtra("jugador_nombre", nombreJugador)
+                            }
+                            context.startActivity(intent)
+                        }
                 )
-
 
                 Spacer(modifier = Modifier.height(8.dp))
 
@@ -97,19 +98,21 @@ fun DerrotaScreen(caballoGanador: String) {
                     painter = painterResource(id = R.drawable.volver_inicio),
                     contentDescription = "Volver a Inicio",
                     modifier = Modifier
-                        .fillMaxWidth(0.55f) // 80% del ancho disponible
-                        //.aspectRatio(1f) // Mantiene la proporción cuadrada
-                        .clickable { context.startActivity(Intent(context, HomeActivity::class.java)) }
+                        .fillMaxWidth(0.55f)
+                        .clickable {
+                            SessionManager.guardarJugador(context, nombreJugador)
+                            val intent = Intent(context, HomeActivity::class.java)
+                            context.startActivity(intent)
+                        }
                 )
-                Spacer(modifier = Modifier.width(8.dp)) // Espacio entre la imagen y el texto
-
             }
         }
     }
 }
 
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewDerrotaScreen() {
-    DerrotaScreen(caballoGanador = "Oros") // puedes usar cualquier valor válido
+    DerrotaScreen(caballoGanador = "Oros", nombreJugador = "JugadorDemo")
 }
