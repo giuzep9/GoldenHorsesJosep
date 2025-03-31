@@ -26,6 +26,9 @@
 
         <service android:name=".MusicService" android:exported="false" />
 
+        <!-- Registramos LoginActivity -->
+        <activity android:name=".uii.LoginActivity" android:exported="true" />
+
         <!-- Registramos HomeActivity -->
         <activity android:name=".uii.HomeActivity" android:exported="true" />
 
@@ -40,9 +43,6 @@
 
         <!-- Registramos DerrotaActivity -->
         <activity android:name=".uii.DerrotaActivity" />
-
-        <!-- Registramos LoginActivity -->
-        <activity android:name=".uii.LoginActivity" />
 
     </application>
 

@@ -1,11 +1,27 @@
 package com.eva.goldenhorses.model
 
+import androidx.room.Entity
+import androidx.room.Ignore
+import androidx.room.PrimaryKey
+
+@Entity(tableName = "jugadores")
 data class Jugador(
-    val nombre: String,
-    val palo: String,
-    var monedas: Int,
-    var apuesta: Apuesta? = null
+    @PrimaryKey val nombre: String, // Clave primaria única (nombre del jugador)
+    var monedas: Int = 100,         // Monedas iniciales
+    var partidas: Int = 0,          // Número total de partidas
+    var victorias: Int = 0,          // Número de partidas ganadas
+    var palo: String = "Oros",
+    @Ignore var apuesta: Apuesta? = null // Igual, solo aplica a lógica temporal
 ) {
+    constructor(nombre: String, monedas: Int, partidas: Int, victorias: Int) : this(
+        nombre,
+        monedas,
+        partidas,
+        victorias,
+        "Oros", // valor por defecto para que Room lo acepte
+        null
+    )
+
     fun realizarApuesta(caballo: String) {
         if (monedas <= 0) {
             // Se le dan 20 monedas si no tiene nada

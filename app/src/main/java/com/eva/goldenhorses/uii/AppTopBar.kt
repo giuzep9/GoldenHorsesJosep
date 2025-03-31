@@ -10,7 +10,9 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
@@ -76,5 +78,17 @@ fun AppTopBar(
                 )
             }
         }
+    )
+}
+@Preview(showBackground = true)
+@Composable
+fun PreviewAppTopBar() {
+    var isMusicMuted by remember { mutableStateOf(false) }
+
+    AppTopBar(
+        context = LocalContext.current,
+        isMusicMuted = isMusicMuted,
+        onToggleMusic = { newState -> isMusicMuted = newState },
+        jugador = Jugador(nombre = "Jugador1", monedas = 100, palo = "Oros") // Ahora pasamos también el valor de palo
     )
 }

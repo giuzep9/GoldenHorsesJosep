@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
@@ -24,40 +25,63 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.R
+import com.eva.goldenhorses.SessionManager
+import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.*
+import com.eva.goldenhorses.repository.JugadorRepository
+import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
+import com.eva.goldenhorses.viewmodel.JugadorViewModel
+import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 
 class GameActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val nombre = intent.getStringExtra("jugador_nombre") ?: "Jugador"
-        val palo = intent.getStringExtra("jugador_palo") ?: "Oros"
-        val monedas = intent.getIntExtra("jugador_monedas", 100)
-        val apuestaCantidad = intent.getIntExtra("jugador_apuesta", 0)
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
+        SessionManager.guardarJugador(this, nombreJugador)
 
-        val jugador = Jugador(nombre, palo, monedas)
-        jugador.realizarApuesta(palo)
 
-        // Ensure system bars behavior is properly set
+        val database = AppDatabase.getDatabase(applicationContext)
+        val repository = JugadorRepository(database.jugadorDAO())
+        val factory = JugadorViewModelFactory(repository)
+        val jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, 0, 0, 0) // Remove any automatic padding
+            view.setPadding(0, 0, 0, 0)
             insets
         }
 
         setContent {
-            val context = LocalContext.current
-            GameScreenWithTopBar(jugador, context)
+            val viewModel = jugadorViewModel
+            val jugadorState = remember { mutableStateOf<Jugador?>(null) }
+
+            LaunchedEffect(nombreJugador) {
+                val jugador = viewModel.obtenerJugador(nombreJugador)
+
+                val paloDesdeIntent = intent.getStringExtra("jugador_palo")
+                if (jugador != null && paloDesdeIntent != null) {
+                    jugador.realizarApuesta(paloDesdeIntent) // recupera apuesta perdida (por ser @Ignore)
+                }
+
+                jugadorState.value = jugador
+            }
+
+            jugadorState.value?.let { jugador ->
+                GameScreenWithTopBar(jugador = jugador, context = this) {
+                    viewModel.actualizarJugador(jugador)
+                }
+            }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
+fun GameScreenWithTopBar(jugador: Jugador, context: Context, onGameFinished: () -> Unit) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
 
@@ -65,7 +89,6 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
         isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
     }
 
-    @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
     Scaffold(
         topBar = {
             AppTopBar(
@@ -82,13 +105,16 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues) // 🟢 Usamos correctamente el padding del Scaffold
         ) {
-            GameScreen(jugador) // Llamada a GameScreen dentro de GameScreenWithTopBar
+            GameScreen(jugador = jugador, onGameFinished = onGameFinished)
         }
     }
 }
+
+
 @Composable
-fun GameScreen(jugador: Jugador) {
+fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
     var carrera by remember { mutableStateOf(Carrera()) }
     var cartaSacada by remember { mutableStateOf<Carta?>(null) }
     var cartasGiradas by remember { mutableStateOf(mutableSetOf<Int>()) }
@@ -108,15 +134,26 @@ fun GameScreen(jugador: Jugador) {
     LaunchedEffect(carreraFinalizada) {
         if (carreraFinalizada) {
             val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
+            Log.d("DEBUG", "Jugador: $jugador, Palo: ${jugador.palo}, Ganador: $ganador")
             jugador.actualizarMonedas(ganador)
+
+            // Actualizamos estadísticas del jugador
+            jugador.partidas += 1
+            if (ganador == jugador.palo) {
+                jugador.victorias += 1
+            }
+
+            onGameFinished() // ✅ Guardar en la base de datos
 
             val intent = if (jugador.palo == ganador) {
                 Intent(context, VictoriaActivity::class.java).apply {
                     putExtra("jugador_palo", jugador.palo)
+                    putExtra("jugador_nombre", jugador.nombre)
                 }
             } else {
                 Intent(context, DerrotaActivity::class.java).apply {
                     putExtra("caballo_ganador", ganador)
+                    putExtra("jugador_nombre", jugador.nombre)
                 }
             }
 
@@ -124,6 +161,7 @@ fun GameScreen(jugador: Jugador) {
             (context as? Activity)?.finish()
         }
     }
+
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -136,12 +174,16 @@ fun GameScreen(jugador: Jugador) {
         )
 
         Column(
-            modifier = Modifier.fillMaxSize().padding(8.dp),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Mazo y carta sacada
             Row(
-                modifier = Modifier.fillMaxWidth().padding(top = 110.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 80.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 cartaSacada?.let {
@@ -159,7 +201,7 @@ fun GameScreen(jugador: Jugador) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(90.dp))
+            Spacer(modifier = Modifier.height(65.dp))
 
             // Zona central (carrera)
             Box(
@@ -277,9 +319,17 @@ fun GameScreen(jugador: Jugador) {
                             ) {
                                 cartaSacada = carrera.sacarCarta()
                                 cartaSacada?.let {
+                                    // Mover el caballo según la carta extraída
                                     carrera.moverCaballo(it.palo)
                                     posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
 
+                                    // Si el juego ya ha finalizado, detén el proceso aquí
+                                    if (carrera.esCarreraFinalizada()) {
+                                        carreraFinalizada = true
+                                        return@clickable // Esto finaliza la ejecución de este bloque (dentro de la lambda del clickable)
+                                    }
+
+                                    // Solo si no ha finalizado, aplicar los retrocesos
                                     carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
                                         if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
                                             cartasGiradas.add(index)
@@ -380,8 +430,20 @@ fun obtenerImagenCarta(carta: Carta): Int {
 }
 @Preview(showBackground = true)
 @Composable
-fun PreviewGameScreen() {
-    val mockJugador = Jugador(nombre = "Jugador", palo = "Oros", monedas = 100)
-    GameScreen(jugador = mockJugador)
-}
+fun PreviewGameScreenWithTopBar() {
+    val fakeJugador = Jugador(
+        nombre = "JugadorDemo",
+        monedas = 100,
+        partidas = 3,
+        victorias = 1,
+        palo = "Copas"
+    )
 
+    GoldenHorsesTheme {
+        GameScreenWithTopBar(
+            jugador = fakeJugador,
+            context = LocalContext.current,
+            onGameFinished = {}
+        )
+    }
+}
