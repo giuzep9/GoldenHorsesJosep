@@ -72,8 +72,19 @@ class HomeActivity : ComponentActivity() {
         val factory = JugadorViewModelFactory(repository)
         jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
-        // Nombre recibido
-        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
+        // Obtener SharedPreferences
+        val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+
+        // Intent puede no traer el nombre cuando vuelves a esta pantalla
+        val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
+
+        // Si el Intent tiene el nombre, lo guardamos en SharedPreferences
+        if (!nombreJugadorIntent.isNullOrEmpty()) {
+            sharedPreferences.edit().putString("jugador_nombre", nombreJugadorIntent).apply()
+        }
+
+        // Recuperamos el nombre desde SharedPreferences (si no existe, usamos "Jugador")
+        val nombreJugador = sharedPreferences.getString("jugador_nombre", "Jugador") ?: "Jugador"
 
         setContent {
             HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)

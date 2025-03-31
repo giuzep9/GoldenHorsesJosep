@@ -5,6 +5,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -186,7 +187,11 @@ fun PlayerSelectionScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .padding(8.dp)
-                            .clickable { paloSeleccionado = palo }
+                            .clickable {
+                                paloSeleccionado = palo
+                                // Agregar un Log para verificar si el estado se actualiza correctamente
+                                Log.d("PlayerSelection", "Palo seleccionado: $paloSeleccionado")
+                            }
                     ) {
                         Image(
                             painter = painterResource(id = imagenesCaballos[palo]!!),
@@ -228,6 +233,8 @@ fun PlayerSelectionScreen(
                         if (paloSeleccionado == null) {
                             Toast.makeText(context, "Selecciona un caballo", Toast.LENGTH_SHORT).show()
                         } else {
+                            // Aquí pasamos los valores de nombreJugador y paloSeleccionado a onPlayerSelected
+                            Log.d("PlayerSelection", "Palo antes de pasar a GameActivity: $paloSeleccionado")
                             onPlayerSelected(nombreJugador, paloSeleccionado!!)
                         }
                     }

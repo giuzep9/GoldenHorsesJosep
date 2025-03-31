@@ -16,9 +16,9 @@ class JugadorViewModel(private val repository: JugadorRepository) : ViewModel() 
         viewModelScope.launch {
             val jugadorExistente = repository.obtenerJugador(nombre)
             if (jugadorExistente != null) {
-                _jugador.value = jugadorExistente
+                _jugador.value = jugadorExistente // Recupera también el palo almacenado
             } else {
-                val nuevo = Jugador(nombre = nombre, monedas = 100, partidas = 0, victorias = 0)
+                val nuevo = Jugador(nombre = nombre, monedas = 100, partidas = 0, victorias = 0, palo = "Oros")
                 repository.insertarJugador(nuevo)
                 _jugador.value = nuevo
             }
@@ -28,6 +28,7 @@ class JugadorViewModel(private val repository: JugadorRepository) : ViewModel() 
     fun actualizarJugador(jugador: Jugador) {
         viewModelScope.launch {
             repository.actualizarJugador(jugador)
+            _jugador.value = jugador  // Asegurar que el ViewModel tenga el valor correcto
         }
     }
 

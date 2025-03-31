@@ -10,8 +10,7 @@ data class Jugador(
     var monedas: Int = 100,         // Monedas iniciales
     var partidas: Int = 0,          // Número total de partidas
     var victorias: Int = 0,          // Número de partidas ganadas
-
-    @Ignore var palo: String = "Oros",   // No se guarda en BD, valor random para que complete
+    var palo: String = "Oros",
     @Ignore var apuesta: Apuesta? = null // Igual, solo aplica a lógica temporal
 ) {
     constructor(nombre: String, monedas: Int, partidas: Int, victorias: Int) : this(

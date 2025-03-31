@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
@@ -124,6 +125,7 @@ fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
     LaunchedEffect(carreraFinalizada) {
         if (carreraFinalizada) {
             val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
+            Log.d("DEBUG", "Jugador: $jugador, Palo: ${jugador.palo}, Ganador: $ganador")
             jugador.actualizarMonedas(ganador)
 
             // Actualizamos estadísticas del jugador
