@@ -27,47 +27,43 @@ import com.eva.goldenhorses.R
 import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.*
 import com.eva.goldenhorses.repository.JugadorRepository
+import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 
 class GameActivity : ComponentActivity() {
-
-    private lateinit var jugadorViewModel: JugadorViewModel
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // 🔸 Recuperar el nombre del jugador del intent
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
 
-        // 🔸 Inicializar ViewModel
         val database = AppDatabase.getDatabase(applicationContext)
         val repository = JugadorRepository(database.jugadorDAO())
         val factory = JugadorViewModelFactory(repository)
-        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+        val jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
-        // Ensure system bars behavior is properly set
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
 
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, 0, 0, 0) // Remove any automatic padding
+            view.setPadding(0, 0, 0, 0)
             insets
         }
 
         setContent {
+            val viewModel = jugadorViewModel
             val jugadorState = remember { mutableStateOf<Jugador?>(null) }
 
-            // 🔸 Cargar el jugador desde la base de datos
             LaunchedEffect(nombreJugador) {
-                val jugador = jugadorViewModel.obtenerJugador(nombreJugador)
+                val jugador = viewModel.obtenerJugador(nombreJugador)
                 jugadorState.value = jugador
             }
 
-            // 🔸 Si el jugador está listo, mostramos la pantalla
             jugadorState.value?.let { jugador ->
-                GameScreenWithTopBar(jugador = jugador, context = this)
+                GameScreenWithTopBar(jugador = jugador, context = this) {
+                    viewModel.actualizarJugador(jugador)
+                }
             }
         }
     }
@@ -75,7 +71,7 @@ class GameActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
+fun GameScreenWithTopBar(jugador: Jugador, context: Context, onGameFinished: () -> Unit) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
 
@@ -83,7 +79,6 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
         isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
     }
 
-    @Suppress("UnusedMaterial3ScaffoldPaddingParameter")
     Scaffold(
         topBar = {
             AppTopBar(
@@ -100,13 +95,16 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context) {
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues) // 🟢 Usamos correctamente el padding del Scaffold
         ) {
-            GameScreen(jugador) // Llamada a GameScreen dentro de GameScreenWithTopBar
+            GameScreen(jugador = jugador, onGameFinished = onGameFinished)
         }
     }
 }
+
+
 @Composable
-fun GameScreen(jugador: Jugador) {
+fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
     var carrera by remember { mutableStateOf(Carrera()) }
     var cartaSacada by remember { mutableStateOf<Carta?>(null) }
     var cartasGiradas by remember { mutableStateOf(mutableSetOf<Int>()) }
@@ -128,6 +126,14 @@ fun GameScreen(jugador: Jugador) {
             val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
             jugador.actualizarMonedas(ganador)
 
+            // Actualizamos estadísticas del jugador
+            jugador.partidas += 1
+            if (ganador == jugador.palo) {
+                jugador.victorias += 1
+            }
+
+            onGameFinished() // ✅ Guardar en la base de datos
+
             val intent = if (jugador.palo == ganador) {
                 Intent(context, VictoriaActivity::class.java).apply {
                     putExtra("jugador_palo", jugador.palo)
@@ -142,6 +148,7 @@ fun GameScreen(jugador: Jugador) {
             (context as? Activity)?.finish()
         }
     }
+
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -163,7 +170,7 @@ fun GameScreen(jugador: Jugador) {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 110.dp),
+                    .padding(top = 80.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 cartaSacada?.let {
@@ -181,7 +188,7 @@ fun GameScreen(jugador: Jugador) {
                 )
             }
 
-            Spacer(modifier = Modifier.height(90.dp))
+            Spacer(modifier = Modifier.height(65.dp))
 
             // Zona central (carrera)
             Box(
@@ -409,17 +416,19 @@ fun obtenerImagenCarta(carta: Carta): Int {
 @Preview(showBackground = true)
 @Composable
 fun PreviewGameScreenWithTopBar() {
-    // Jugador de prueba
-    val jugadorDemo = Jugador(
+    val fakeJugador = Jugador(
         nombre = "JugadorDemo",
         monedas = 100,
-        partidas = 5,
-        victorias = 2,
-        palo = "Oros"
+        partidas = 3,
+        victorias = 1,
+        palo = "Copas"
     )
 
-    // Contexto simulado solo para vista previa (no se usa realmente)
-    val fakeContext = LocalContext.current
-
-    GameScreenWithTopBar(jugador = jugadorDemo, context = fakeContext)
+    GoldenHorsesTheme {
+        GameScreenWithTopBar(
+            jugador = fakeJugador,
+            context = LocalContext.current,
+            onGameFinished = {}
+        )
+    }
 }
