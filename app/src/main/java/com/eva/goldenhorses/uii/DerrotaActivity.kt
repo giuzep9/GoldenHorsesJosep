@@ -20,16 +20,17 @@ import com.eva.goldenhorses.R
 class DerrotaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
         val ganador = intent.getStringExtra("caballo_ganador") ?: "Oros"
 
         setContent {
-            DerrotaScreen(caballoGanador = ganador)
+            DerrotaScreen(caballoGanador = ganador, nombreJugador = nombreJugador)
         }
     }
 }
 
 @Composable
-fun DerrotaScreen(caballoGanador: String) {
+fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
     val context = LocalContext.current
     val icono = when (caballoGanador) {
         "Oros" -> R.drawable.cab_oros
@@ -70,7 +71,11 @@ fun DerrotaScreen(caballoGanador: String) {
             Spacer(modifier = Modifier.height(32.dp))
 
             Button(onClick = {
-                context.startActivity(Intent(context, PlayerSelectionActivity::class.java))
+                context.startActivity(
+                    Intent(context, PlayerSelectionActivity::class.java).apply {
+                        putExtra("jugador_nombre", nombreJugador)
+                    }
+                )
             }) {
                 Text("Volver a jugar")
             }
@@ -78,7 +83,11 @@ fun DerrotaScreen(caballoGanador: String) {
             Spacer(modifier = Modifier.height(16.dp))
 
             Button(onClick = {
-                context.startActivity(Intent(context, HomeActivity::class.java))
+                context.startActivity(
+                    Intent(context, HomeActivity::class.java).apply {
+                        putExtra("jugador_nombre", nombreJugador)
+                    }
+                )
             }) {
                 Text("Volver a Inicio")
             }
@@ -89,5 +98,5 @@ fun DerrotaScreen(caballoGanador: String) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewDerrotaScreen() {
-    DerrotaScreen(caballoGanador = "Oros") // puedes usar cualquier valor válido
+    DerrotaScreen(caballoGanador = "Oros", nombreJugador = "JugadorDemo")
 }
