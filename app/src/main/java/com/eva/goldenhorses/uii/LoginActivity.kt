@@ -1,5 +1,6 @@
 package com.eva.goldenhorses.uii
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -28,6 +29,7 @@ import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.repository.JugadorRepository
 import androidx.compose.material3.TextFieldDefaults
+import com.eva.goldenhorses.SessionManager
 
 
 class LoginActivity : ComponentActivity() {
@@ -120,7 +122,7 @@ fun LoginScreen(
                     )
                 }
 
-                // ⬇ Botón abajo
+                // Botón abajo
                 Image(
                     painter = painterResource(id = R.drawable.boton_inicio),
                     contentDescription = "Iniciar",
@@ -130,6 +132,10 @@ fun LoginScreen(
                         .clickable {
                             if (nombreJugador.isNotBlank()) {
                                 viewModel.comprobarOInsertarJugador(nombreJugador)
+
+                                // GUARDAR nombre del jugador en sesión
+                                SessionManager.guardarJugador(context, nombreJugador)
+
                                 onLoginSuccess(nombreJugador)
                             }
                         }

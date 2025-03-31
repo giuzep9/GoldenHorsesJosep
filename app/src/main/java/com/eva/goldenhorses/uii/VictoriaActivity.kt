@@ -19,6 +19,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
+import com.eva.goldenhorses.SessionManager
 
 class VictoriaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -102,9 +103,8 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
                         .clickable {
-                            val intent = Intent(context, HomeActivity::class.java).apply {
-                                putExtra("jugador_nombre", nombreJugador)
-                            }
+                            SessionManager.guardarJugador(context, nombreJugador)
+                            val intent = Intent(context, HomeActivity::class.java)
                             context.startActivity(intent)
                         }
                 )

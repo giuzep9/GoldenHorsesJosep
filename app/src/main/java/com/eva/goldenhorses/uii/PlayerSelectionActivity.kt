@@ -28,6 +28,7 @@ import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.R
+import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
@@ -60,6 +61,8 @@ class PlayerSelectionActivity : ComponentActivity() {
         jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: ""
+        SessionManager.guardarJugador(this, nombreJugador)
+
 
         setContent {
             PlayerSelectionScreenWithTopBar(context = this, viewModel = jugadorViewModel, nombreJugador = nombreJugador)

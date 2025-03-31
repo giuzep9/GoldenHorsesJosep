@@ -25,6 +25,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.R
+import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.*
 import com.eva.goldenhorses.repository.JugadorRepository
@@ -37,6 +38,8 @@ class GameActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
+        SessionManager.guardarJugador(this, nombreJugador)
+
 
         val database = AppDatabase.getDatabase(applicationContext)
         val repository = JugadorRepository(database.jugadorDAO())
@@ -139,10 +142,12 @@ fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
             val intent = if (jugador.palo == ganador) {
                 Intent(context, VictoriaActivity::class.java).apply {
                     putExtra("jugador_palo", jugador.palo)
+                    putExtra("jugador_nombre", jugador.nombre)
                 }
             } else {
                 Intent(context, DerrotaActivity::class.java).apply {
                     putExtra("caballo_ganador", ganador)
+                    putExtra("jugador_nombre", jugador.nombre)
                 }
             }
 

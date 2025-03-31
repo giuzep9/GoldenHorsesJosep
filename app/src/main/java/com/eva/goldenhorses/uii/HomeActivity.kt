@@ -3,6 +3,7 @@ package com.eva.goldenhorses.uii
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -40,6 +41,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
+import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
@@ -75,16 +77,14 @@ class HomeActivity : ComponentActivity() {
         // Obtener SharedPreferences
         val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
-        // Intent puede no traer el nombre cuando vuelves a esta pantalla
         val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
 
-        // Si el Intent tiene el nombre, lo guardamos en SharedPreferences
         if (!nombreJugadorIntent.isNullOrEmpty()) {
-            sharedPreferences.edit().putString("jugador_nombre", nombreJugadorIntent).apply()
+            SessionManager.guardarJugador(this, nombreJugadorIntent)
         }
 
-        // Recuperamos el nombre desde SharedPreferences (si no existe, usamos "Jugador")
-        val nombreJugador = sharedPreferences.getString("jugador_nombre", "Jugador") ?: "Jugador"
+        val nombreJugador = SessionManager.obtenerJugador(this)
+        Log.d("HomeActivity", "Nombre obtenido de SessionManager: $nombreJugador")
 
         setContent {
             HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)
