@@ -3,6 +3,7 @@ package com.eva.goldenhorses.uii
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
@@ -132,11 +133,10 @@ fun LoginScreen(
                         .clickable {
                             if (nombreJugador.isNotBlank()) {
                                 viewModel.comprobarOInsertarJugador(nombreJugador)
-
-                                // GUARDAR nombre del jugador en sesión
                                 SessionManager.guardarJugador(context, nombreJugador)
-
                                 onLoginSuccess(nombreJugador)
+                            } else {
+                                Toast.makeText(context, "Debes introducir tu nombre de usuario", Toast.LENGTH_SHORT).show()
                             }
                         }
                 )
