@@ -5,11 +5,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -32,65 +35,79 @@ class VictoriaActivity : ComponentActivity() {
 @Composable
 fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
     val context = LocalContext.current
+
     val icono = when (caballoPalo) {
-        "Oros" -> R.drawable.imagen_oros
-        "Copas" -> R.drawable.imagen_copas
-        "Espadas" -> R.drawable.imagen_espadas
-        "Bastos" -> R.drawable.imagen_bastos
+        "Oros" -> R.drawable.cab_oros
+        "Copas" -> R.drawable.cab_copas
+        "Espadas" -> R.drawable.cab_espadas
+        "Bastos" -> R.drawable.cab_bastos
         else -> R.drawable.mazo
     }
 
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
-        // Imagen de fondo
+        // Fondo
         Image(
             painter = painterResource(id = R.drawable.fondo_victoria),
             contentDescription = "Fondo victoria",
             modifier = Modifier.fillMaxSize(),
             contentScale = androidx.compose.ui.layout.ContentScale.Crop
         )
-        // Contenido encima del fondo
-        Column(
+
+        // Caja de contenido centrado con fondo blanco semitransparente
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(50.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top // Acomoda los elementos desde la parte superior
+                .fillMaxWidth(0.8f)
+                .heightIn(max = 425.dp)
+                .background(Color.White.copy(alpha = 0.8f))
+                .align(Alignment.Center)
+                .padding(32.dp)
         ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("¡Has ganado!", fontSize = 28.sp)
 
-            Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Text("¡Has ganado! 🎉", fontSize = 28.sp)
+                Image(
+                    painter = painterResource(id = icono),
+                    contentDescription = "Tu caballo ganador",
+                    modifier = Modifier.size(120.dp)
+                )
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            Image(
-                painter = painterResource(id = icono),
-                contentDescription = "Tu caballo ganador",
-                modifier = Modifier.size(120.dp)
-            )
+                Image(
+                    painter = painterResource(id = R.drawable.volver_jugar),
+                    contentDescription = "Volver a Jugar",
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .clickable {
+                            val intent = Intent(context, PlayerSelectionActivity::class.java).apply {
+                                putExtra("jugador_nombre", nombreJugador)
+                            }
+                            context.startActivity(intent)
+                        }
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-            Button(onClick = {
-                val intent = Intent(context, PlayerSelectionActivity::class.java).apply {
-                    putExtra("jugador_nombre", nombreJugador)
-                }
-                context.startActivity(intent)
-            }) {
-                Text("Volver a jugar")
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Button(onClick = {
-                val intent = Intent(context, HomeActivity::class.java).apply {
-                    putExtra("jugador_nombre", nombreJugador)
-                }
-                context.startActivity(intent)
-            }) {
-                Text("Volver a Inicio")
+                Image(
+                    painter = painterResource(id = R.drawable.volver_inicio),
+                    contentDescription = "Volver a Inicio",
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .clickable {
+                            val intent = Intent(context, HomeActivity::class.java).apply {
+                                putExtra("jugador_nombre", nombreJugador)
+                            }
+                            context.startActivity(intent)
+                        }
+                )
             }
         }
     }

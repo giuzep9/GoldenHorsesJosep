@@ -5,11 +5,14 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -39,9 +42,8 @@ fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
         "Bastos" -> R.drawable.cab_bastos
         else -> R.drawable.mazo
     }
-    Box(
-        modifier = Modifier.fillMaxSize()
-    ) {
+
+    Box(modifier = Modifier.fillMaxSize()) {
         // Imagen de fondo
         Image(
             painter = painterResource(id = R.drawable.fondo_derrota),
@@ -50,50 +52,64 @@ fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
             contentScale = androidx.compose.ui.layout.ContentScale.Crop
         )
 
-        // Contenido encima del fondo
-        Column(
+        // Contenedor central con fondo semitransparente
+        Box(
             modifier = Modifier
-                .fillMaxSize()
-                .padding(32.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+                .fillMaxWidth(0.8f)
+                .heightIn(max = 425.dp)
+                .background(Color.White.copy(alpha = 0.8f))
+                .align(Alignment.Center)
+                .padding(32.dp)
         ) {
-            Text("Has perdido 😢", fontSize = 28.sp)
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text("Has perdido 😢", fontSize = 28.sp)
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Image(
-                painter = painterResource(id = icono),
-                contentDescription = "Caballo ganador",
-                modifier = Modifier.size(120.dp)
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            Button(onClick = {
-                context.startActivity(
-                    Intent(context, PlayerSelectionActivity::class.java).apply {
-                        putExtra("jugador_nombre", nombreJugador)
-                    }
+                Image(
+                    painter = painterResource(id = icono),
+                    contentDescription = "Caballo ganador",
+                    modifier = Modifier.size(120.dp)
                 )
-            }) {
-                Text("Volver a jugar")
-            }
 
-            Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(32.dp))
 
-            Button(onClick = {
-                context.startActivity(
-                    Intent(context, HomeActivity::class.java).apply {
-                        putExtra("jugador_nombre", nombreJugador)
-                    }
+                Image(
+                    painter = painterResource(id = R.drawable.volver_jugar),
+                    contentDescription = "Volver a Jugar",
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .clickable {
+                            val intent = Intent(context, PlayerSelectionActivity::class.java).apply {
+                                putExtra("jugador_nombre", nombreJugador)
+                            }
+                            context.startActivity(intent)
+                        }
                 )
-            }) {
-                Text("Volver a Inicio")
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Image(
+                    painter = painterResource(id = R.drawable.volver_inicio),
+                    contentDescription = "Volver a Inicio",
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .clickable {
+                            val intent = Intent(context, HomeActivity::class.java).apply {
+                                putExtra("jugador_nombre", nombreJugador)
+                            }
+                            context.startActivity(intent)
+                        }
+                )
             }
         }
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable
