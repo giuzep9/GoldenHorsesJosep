@@ -21,6 +21,7 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "golden_horses_db"
                 )
+
                     .build()
                 INSTANCE = instance
                 instance

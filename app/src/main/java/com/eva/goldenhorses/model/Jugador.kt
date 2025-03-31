@@ -7,7 +7,7 @@ import androidx.room.PrimaryKey
 @Entity(tableName = "jugadores")
 data class Jugador(
     @PrimaryKey val nombre: String, // Clave primaria única (nombre del jugador)
-    var monedas: Int = 100,         // Monedas iniciales
+    var monedas: Int = 20,         // Monedas iniciales
     var partidas: Int = 0,          // Número total de partidas
     var victorias: Int = 0,          // Número de partidas ganadas
     var palo: String = "Oros",

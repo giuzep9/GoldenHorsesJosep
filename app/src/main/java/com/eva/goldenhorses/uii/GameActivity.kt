@@ -9,6 +9,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.animation.*
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -18,6 +19,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -125,10 +127,10 @@ fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
     val context = LocalContext.current
 
     val imagenesCaballos = mapOf(
-        "Oros" to R.drawable.imagen_oros,
-        "Copas" to R.drawable.imagen_copas,
-        "Bastos" to R.drawable.imagen_bastos,
-        "Espadas" to R.drawable.imagen_espadas
+        "Oros" to R.drawable.cab_oros,
+        "Copas" to R.drawable.cab_copas,
+        "Bastos" to R.drawable.cab_bastos,
+        "Espadas" to R.drawable.cab_espadas
     )
 
     LaunchedEffect(carreraFinalizada) {
@@ -221,21 +223,39 @@ fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
                             val posicionInversa = (carrera.obtenerCartasRetroceso().size - 1) - index
                             val girada = cartasGiradas.contains(posicionInversa)
 
-                            AnimatedVisibility(
-                                visible = true,
-                                enter = fadeIn(tween(500)) + scaleIn(),
-                                exit = fadeOut(tween(500)) + scaleOut()
+                            var rotacion by remember { mutableStateOf(0f) }  // Estado para la rotación
+                            val rotacionAnimada by animateFloatAsState(
+                                targetValue = if (girada) 180f else 0f,  // Si está girada, rota a 180°
+                                animationSpec = tween(durationMillis = 500)  // Duración de la animación
+                            )
+
+                            Box(
+                                modifier = Modifier
+                                    .size(60.dp)
+                                    .graphicsLayer { rotationY = rotacionAnimada }  // Aplica la rotación en el eje Y
+                                    .clickable {
+                                        rotacion = if (girada) 0f else 180f  // Invierte la rotación al hacer clic
+                                    }
                             ) {
-                                Image(
-                                    painter = painterResource(
-                                        id = if (girada) obtenerImagenCarta(carta) else R.drawable.imgcarta
-                                    ),
-                                    contentDescription = "Carta Retroceso",
-                                    modifier = Modifier.size(60.dp)
-                                )
+                                if (rotacionAnimada <= 90f) {
+                                    // Mostrar el reverso de la carta hasta la mitad del giro
+                                    Image(
+                                        painter = painterResource(id = R.drawable.imgcarta),
+                                        contentDescription = "Carta oculta",
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                } else {
+                                    // Mostrar la carta revelada en la segunda mitad del giro
+                                    Image(
+                                        painter = painterResource(id = obtenerImagenCarta(carta)),
+                                        contentDescription = "Carta Retroceso",
+                                        modifier = Modifier.fillMaxSize()
+                                    )
+                                }
                             }
                         }
                     }
+
 
                     // Caballos en pista
                     val cartasRetroceso = carrera.obtenerCartasRetroceso()

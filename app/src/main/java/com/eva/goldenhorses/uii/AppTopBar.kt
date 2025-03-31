@@ -12,6 +12,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -60,21 +61,24 @@ fun AppTopBar(
             }
         },
         colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = Color(0xFF000000),
+            containerColor = Color(0xFF9DC4E3),
             titleContentColor = Color.White
         ),
         actions = {
             if (jugador != null) {
+
+                Text(
+                    text = "${jugador.monedas}",
+                    color = Color(0xFF343F4B),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(8.dp)
+
+                )
                 Image(
                     painter = painterResource(id = R.drawable.ic_coins),
                     contentDescription = "Coins Icon",
-                    modifier = Modifier.size(24.dp)
-                )
-                Text(
-                    text = "${jugador.monedas}",
-                    color = Color.White,
-                    fontSize = 18.sp,
-                    modifier = Modifier.padding(8.dp)
+                    modifier = Modifier.size(40.dp)
                 )
             }
         }

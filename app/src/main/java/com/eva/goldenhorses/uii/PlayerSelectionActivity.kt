@@ -119,7 +119,7 @@ fun PlayerSelectionScreenWithTopBar(
                         victorias = victoriasActuales
                     ).apply {
                         this.palo = palo
-                       // this.realizarApuesta(palo)
+                        //this.realizarApuesta(palo)
                     }
 
                     if (jugadorExistente != null) {
@@ -241,9 +241,29 @@ fun PlayerSelectionScreen(
                         if (paloSeleccionado == null) {
                             Toast.makeText(context, "Selecciona un caballo", Toast.LENGTH_SHORT).show()
                         } else {
-                            // Aquí pasamos los valores de nombreJugador y paloSeleccionado a onPlayerSelected
-                            Log.d("PlayerSelection", "Palo antes de pasar a GameActivity: $paloSeleccionado")
-                            onPlayerSelected(nombreJugador, paloSeleccionado!!)
+                            CoroutineScope(Dispatchers.IO).launch {
+                                val jugadorExistente = viewModel.obtenerJugador(nombreJugador)
+
+                                if (jugadorExistente != null) {
+                                    if (jugadorExistente.monedas == 0) {
+                                        // Mostrar mensaje y regalar monedas
+                                        launch(Dispatchers.Main) {
+                                            Toast.makeText(
+                                                context,
+                                                "¡No te quedan monedas! Te regalamos 20 mas para que puedas jugar!",
+                                                Toast.LENGTH_LONG
+                                            ).show()
+                                        }
+
+                                        val jugadorActualizado = jugadorExistente.copy(monedas = 20)
+                                        viewModel.actualizarJugador(jugadorActualizado)
+                                    } else {
+                                        // Si tiene monedas, proceder con la apuesta
+                                        Log.d("PlayerSelection", "Palo antes de pasar a GameActivity: $paloSeleccionado")
+                                        onPlayerSelected(nombreJugador, paloSeleccionado!!)
+                                    }
+                                }
+                            }
                         }
                     }
             )
