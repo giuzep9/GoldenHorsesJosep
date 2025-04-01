@@ -31,6 +31,10 @@ import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.repository.JugadorRepository
 import androidx.compose.material3.TextFieldDefaults
 import com.eva.goldenhorses.SessionManager
+import com.eva.goldenhorses.data.JugadorDAO
+import com.eva.goldenhorses.model.Jugador
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Maybe
 
 
 class LoginActivity : ComponentActivity() {
@@ -153,10 +157,10 @@ fun LoginScreen(
 @Composable
 fun PreviewLoginScreen() {
     // Fake DAO sin operaciones reales
-    val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
-        override suspend fun insertarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
-        override suspend fun obtenerJugador(nombre: String): com.eva.goldenhorses.model.Jugador? = null
-        override suspend fun actualizarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
+    val fakeDAO = object : JugadorDAO {
+        override fun insertarJugador(jugador: Jugador) = Completable.complete()
+        override fun obtenerJugador(nombre: String) = Maybe.empty<Jugador>()
+        override fun actualizarJugador(jugador: Jugador) = Completable.complete()
     }
 
     val fakeRepository = com.eva.goldenhorses.repository.JugadorRepository(fakeDAO)

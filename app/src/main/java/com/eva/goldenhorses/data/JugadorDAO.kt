@@ -2,15 +2,19 @@ package com.eva.goldenhorses.data
 
 import androidx.room.*
 import com.eva.goldenhorses.model.Jugador
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Maybe
 
 @Dao
 interface JugadorDAO {
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertarJugador(jugador: Jugador)
+    fun insertarJugador(jugador: Jugador): Completable
 
     @Query("SELECT * FROM jugadores WHERE nombre = :nombre LIMIT 1")
-    suspend fun obtenerJugador(nombre: String): Jugador?
+    fun obtenerJugador(nombre: String): Maybe<Jugador>
 
     @Update
-    suspend fun actualizarJugador(jugador: Jugador)
+    fun actualizarJugador(jugador: Jugador): Completable
 }
+

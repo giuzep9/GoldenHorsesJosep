@@ -23,6 +23,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -100,10 +101,10 @@ fun HomeScreenWithTopBar(
 ) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
-    var jugador by remember { mutableStateOf<Jugador?>(null) }
+    val jugador by viewModel.jugador.collectAsState()
 
     LaunchedEffect(nombreJugador) {
-        jugador = viewModel.obtenerJugador(nombreJugador)
+        viewModel.iniciarSesion(nombreJugador)
         isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
     }
 
@@ -122,8 +123,7 @@ fun HomeScreenWithTopBar(
             }
         ) { paddingValues ->
             HomeScreen(
-                viewModel = viewModel,
-                nombreJugador = nombreJugador,
+                jugador = jugador,
                 onPlayClick = {
                     context.startActivity(Intent(context, PlayerSelectionActivity::class.java).apply {
                         putExtra("jugador_nombre", nombreJugador)
@@ -133,6 +133,7 @@ fun HomeScreenWithTopBar(
                     .fillMaxSize()
                     .padding(paddingValues)
             )
+
         }
     }
 
@@ -140,19 +141,14 @@ fun HomeScreenWithTopBar(
 
 @Composable
 fun HomeScreen(
-    viewModel: JugadorViewModel,
-    nombreJugador: String,
+    jugador: Jugador?,
     onPlayClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var partidas by remember { mutableStateOf(0) }
-    var victorias by remember { mutableStateOf(0) }
+    val partidas = jugador?.partidas ?: 0
+    val victorias = jugador?.victorias ?: 0
+    val nombreJugador = jugador?.nombre ?: "Cargando..."
 
-    LaunchedEffect(nombreJugador) {
-        val jugador = viewModel.obtenerJugador(nombreJugador)
-        partidas = jugador?.partidas ?: 0
-        victorias = jugador?.victorias ?: 0
-    }
 
     Box(
         modifier = modifier
@@ -213,7 +209,7 @@ fun HomeScreen(
 
 
 
-@Preview(showBackground = true)
+/*@Preview(showBackground = true)
 @Composable
 fun PreviewHomeScreenWithTopBar() {
     // Fake ViewModel y repositorio como antes
@@ -238,5 +234,5 @@ fun PreviewHomeScreenWithTopBar() {
         )
     }
 }
-
+*/
 

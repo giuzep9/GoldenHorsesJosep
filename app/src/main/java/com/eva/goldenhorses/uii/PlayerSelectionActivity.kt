@@ -35,6 +35,8 @@ import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -81,12 +83,12 @@ fun PlayerSelectionScreenWithTopBar(
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(sharedPreferences.getBoolean("isMusicMuted", false)) }
 
-     val jugadorState = remember { mutableStateOf<Jugador?>(null) }
+     val jugador by viewModel.jugador.collectAsState()
 
      LaunchedEffect(nombreJugador) {
-         val jugador = viewModel.obtenerJugador(nombreJugador)
-         jugadorState.value = jugador
+         viewModel.iniciarSesion(nombreJugador)
      }
+
 
     Scaffold(
         topBar = {
@@ -97,7 +99,7 @@ fun PlayerSelectionScreenWithTopBar(
                     isMusicMutedState = newState
                     sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                 },
-                jugador = jugadorState.value
+                jugador = jugador
             )
         }
     ) { paddingValues ->
@@ -105,44 +107,51 @@ fun PlayerSelectionScreenWithTopBar(
             nombreJugador = nombreJugador,
             viewModel = viewModel,
             onPlayerSelected = { nombre, palo ->
-                CoroutineScope(Dispatchers.IO).launch {
-                    val jugadorExistente = viewModel.obtenerJugador(nombre)
-                    val monedasActuales = jugadorExistente?.monedas ?: 100
 
-                    val partidasActuales = jugadorExistente?.partidas ?: 0
-                    val victoriasActuales = jugadorExistente?.victorias ?: 0
+                val disposable = viewModel.repository.obtenerJugador(nombre)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe({ jugadorExistente ->
+                        // ✅ Ya existe → lo actualizamos
+                        val jugadorActualizado = jugadorExistente.copy(palo = palo)
+                        viewModel.actualizarJugador(jugadorActualizado)
 
-                    val nuevoJugador = Jugador(
-                        nombre = nombre,
-                        monedas = monedasActuales,
-                        partidas = partidasActuales,
-                        victorias = victoriasActuales
-                    ).apply {
-                        this.palo = palo
-                        //this.realizarApuesta(palo)
-                    }
+                        val intent = Intent(context, GameActivity::class.java).apply {
+                            putExtra("jugador_nombre", jugadorActualizado.nombre)
+                            putExtra("jugador_palo", jugadorActualizado.palo)
+                            putExtra("jugador_monedas", jugadorActualizado.monedas)
+                        }
 
-                    if (jugadorExistente != null) {
-                        viewModel.actualizarJugador(nuevoJugador)
-                    } else {
+                        context.startActivity(intent)
+                        (context as? Activity)?.finish()
+
+                    }, { error ->
+                        error.printStackTrace()
+                    }, {
+                        // 🆕 No existía → lo creamos
+                        val nuevoJugador = Jugador(
+                            nombre = nombre,
+                            monedas = 100,
+                            partidas = 0,
+                            victorias = 0,
+                            palo = palo
+                        )
+
                         viewModel.insertarJugador(nuevoJugador)
-                    }
 
-                    // ✅ Guardamos los nuevos datos (con monedas actualizadas) en la base de datos
-                    viewModel.actualizarJugador(nuevoJugador)
+                        val intent = Intent(context, GameActivity::class.java).apply {
+                            putExtra("jugador_nombre", nuevoJugador.nombre)
+                            putExtra("jugador_palo", nuevoJugador.palo)
+                            putExtra("jugador_monedas", nuevoJugador.monedas)
+                        }
 
-                    val intent = Intent(context, GameActivity::class.java).apply {
-                        putExtra("jugador_nombre", nuevoJugador.nombre)
-                        putExtra("jugador_palo", nuevoJugador.palo)
-                        putExtra("jugador_monedas", nuevoJugador.monedas)
-                    }
-
-                    context.startActivity(intent)
-                    (context as? Activity)?.finish()
-                }
+                        context.startActivity(intent)
+                        (context as? Activity)?.finish()
+                    })
             },
             modifier = Modifier.padding(paddingValues)
         )
+
     }
 }
 
@@ -241,29 +250,29 @@ fun PlayerSelectionScreen(
                         if (paloSeleccionado == null) {
                             Toast.makeText(context, "Selecciona un caballo", Toast.LENGTH_SHORT).show()
                         } else {
-                            CoroutineScope(Dispatchers.IO).launch {
-                                val jugadorExistente = viewModel.obtenerJugador(nombreJugador)
-
-                                if (jugadorExistente != null) {
-                                    if (jugadorExistente.monedas == 0) {
-                                        // Mostrar mensaje y regalar monedas
-                                        launch(Dispatchers.Main) {
+                            val disposable = viewModel.repository.obtenerJugador(nombreJugador)
+                                .subscribeOn(Schedulers.io())
+                                .observeOn(AndroidSchedulers.mainThread())
+                                .subscribe({ jugadorExistente ->
+                                    if (jugadorExistente != null) {
+                                        if (jugadorExistente.monedas == 0) {
                                             Toast.makeText(
                                                 context,
-                                                "¡No te quedan monedas! Te regalamos 20 mas para que puedas jugar!",
+                                                "¡No te quedan monedas! Te regalamos 20 más para que puedas jugar!",
                                                 Toast.LENGTH_LONG
                                             ).show()
-                                        }
 
-                                        val jugadorActualizado = jugadorExistente.copy(monedas = 20)
-                                        viewModel.actualizarJugador(jugadorActualizado)
-                                    } else {
-                                        // Si tiene monedas, proceder con la apuesta
-                                        Log.d("PlayerSelection", "Palo antes de pasar a GameActivity: $paloSeleccionado")
-                                        onPlayerSelected(nombreJugador, paloSeleccionado!!)
+                                            val jugadorActualizado = jugadorExistente.copy(monedas = 20)
+                                            viewModel.actualizarJugador(jugadorActualizado)
+                                        } else {
+                                            Log.d("PlayerSelection", "Palo antes de pasar a GameActivity: $paloSeleccionado")
+                                            onPlayerSelected(nombreJugador, paloSeleccionado!!)
+                                        }
                                     }
-                                }
-                            }
+                                }, { error ->
+                                    error.printStackTrace()
+                                })
+
                         }
                     }
             )
@@ -273,7 +282,7 @@ fun PlayerSelectionScreen(
     }
 }
 
-@Preview(showBackground = true)
+/*@Preview(showBackground = true)
 @Composable
 fun PreviewPlayerSelectionScreen() {
     val fakeViewModel = remember {
@@ -294,3 +303,4 @@ fun PreviewPlayerSelectionScreen() {
         )
     }
 }
+*/

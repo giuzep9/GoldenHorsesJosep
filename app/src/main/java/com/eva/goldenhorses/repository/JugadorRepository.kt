@@ -1,17 +1,20 @@
 package com.eva.goldenhorses.repository
 
-import android.util.Log
 import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.Jugador
 
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Maybe
+
 class JugadorRepository(private val jugadorDAO: JugadorDAO) {
-    suspend fun insertarJugador(jugador: Jugador) = jugadorDAO.insertarJugador(jugador)
-    suspend fun obtenerJugador(nombre: String): Jugador? = jugadorDAO.obtenerJugador(nombre)
-    suspend fun actualizarJugador(jugador: Jugador) {
+
+    fun insertarJugador(jugador: Jugador): Completable =
+        jugadorDAO.insertarJugador(jugador)
+
+    fun obtenerJugador(nombre: String): Maybe<Jugador> =
+        jugadorDAO.obtenerJugador(nombre)
+
+    fun actualizarJugador(jugador: Jugador): Completable =
         jugadorDAO.actualizarJugador(jugador)
-        Log.d(
-            "DB_UPDATE",
-            "Jugador actualizado: ${jugador.nombre} | Partidas: ${jugador.partidas} | Victorias: ${jugador.victorias}"
-        )
-    }
 }
+

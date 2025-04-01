@@ -58,26 +58,24 @@ class GameActivity : ComponentActivity() {
         }
 
         setContent {
-            val viewModel = jugadorViewModel
-            val jugadorState = remember { mutableStateOf<Jugador?>(null) }
+            val jugador by jugadorViewModel.jugador.collectAsState()
 
             LaunchedEffect(nombreJugador) {
-                val jugador = viewModel.obtenerJugador(nombreJugador)
+                jugadorViewModel.iniciarSesion(nombreJugador)
 
                 val paloDesdeIntent = intent.getStringExtra("jugador_palo")
-                if (jugador != null && paloDesdeIntent != null) {
-                    jugador.realizarApuesta(paloDesdeIntent) // recupera apuesta perdida (por ser @Ignore)
+                if (paloDesdeIntent != null) {
+                    jugador?.realizarApuesta(paloDesdeIntent)
                 }
-
-                jugadorState.value = jugador
             }
 
-            jugadorState.value?.let { jugador ->
+            jugador?.let { jugador ->
                 GameScreenWithTopBar(jugador = jugador, context = this) {
-                    viewModel.actualizarJugador(jugador)
+                    jugadorViewModel.actualizarJugador(jugador)
                 }
             }
         }
+
     }
 }
 

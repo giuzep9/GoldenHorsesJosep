@@ -63,4 +63,12 @@ dependencies {
     implementation(libs.room.runtime)
     implementation(libs.room.ktx)
     kapt(libs.room.compiler)
+
+    // RxJava 3
+    implementation("io.reactivex.rxjava3:rxjava:3.1.6")
+    implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
+
+    // Room con soporte para RxJava3
+    implementation("androidx.room:room-rxjava3:2.6.1")
+
 }
