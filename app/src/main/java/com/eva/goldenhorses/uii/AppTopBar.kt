@@ -26,7 +26,7 @@ fun AppTopBar(
     context: Context,
     isMusicMuted: Boolean,
     onToggleMusic: (Boolean) -> Unit,
-    jugador: Jugador? = null // ✅ Lo hacemos opcional
+    jugador: Jugador? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
 

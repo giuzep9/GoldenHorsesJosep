@@ -66,7 +66,7 @@ fun WelcomeScreen(onPlayClick: () -> Unit) {
         ) {
             // Logo en la parte superior
             Image(
-                painter = painterResource(id = R.drawable.logo), // Asegúrate de tener esta imagen en drawable
+                painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Logo del videojuego",
                 modifier = Modifier
                     .width(450.dp) // Ajusta el tamaño del logo

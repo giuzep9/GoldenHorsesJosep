@@ -109,7 +109,7 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context, viewModel: JugadorV
         Box(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues) // 🟢 Usamos correctamente el padding del Scaffold
+                .padding(paddingValues)
         ) {
             GameScreen(jugador = jugador, viewModel = viewModel, onGameFinished = onGameFinished)
         }
@@ -148,7 +148,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                 jugador.victorias += 1
             }
 
-            onGameFinished() // ✅ Guardar en la base de datos
+            onGameFinished() // Guardar en la base de datos
 
             val intent = if (jugador.palo == ganador) {
                 Intent(context, VictoriaActivity::class.java).apply {
@@ -323,7 +323,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             // Botón sacar carta
             Box(
                 modifier = Modifier
-                    .width(130.dp) // Limita el ancho del Box para que no afecte otros elementos
+                    .width(130.dp)
                     .height(65.dp)
                     .fillMaxWidth()
                     .wrapContentSize(),
@@ -334,11 +334,11 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                         painter = painterResource(id = R.drawable.btn_carta),
                         contentDescription = "Sacar Carta",
                         modifier = Modifier
-                            .size(200.dp, 80.dp) // Ajusta el tamaño según sea necesario
-                            .wrapContentSize() // Evita que el botón se expanda más de su contenido
+                            .size(200.dp, 80.dp)
+                            .wrapContentSize()
                             .clickable(
-                                interactionSource = remember { MutableInteractionSource() }, // Evita el efecto visual
-                                indication = null // Elimina la animación de clic
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
                             ) {
                                 cartaSacada = carrera.sacarCarta()
                                 cartaSacada?.let {

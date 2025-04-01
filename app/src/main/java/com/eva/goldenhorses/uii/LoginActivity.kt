@@ -94,7 +94,7 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.SpaceBetween,
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // 🔝 Imagen "identificate" arriba
+                // Imagen "identificate" arriba
                 Image(
                     painter = painterResource(id = R.drawable.identificate),
                     contentDescription = "Identifícate",
@@ -103,7 +103,7 @@ fun LoginScreen(
                         .height(100.dp)
                 )
 
-                // 🎯 Input de nombre con ajuste dinámico
+                // Input de nombre con ajuste dinámico
                 Column(
                     modifier = Modifier
                         .padding(top = inputOffset)
@@ -169,7 +169,7 @@ fun PreviewLoginScreen() {
     GoldenHorsesTheme {
         LoginScreen(
             viewModel = fakeViewModel,
-            onLoginSuccess = {} // No hace nada en el preview
+            onLoginSuccess = {}
         )
     }
 }

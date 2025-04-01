@@ -79,7 +79,6 @@ class HomeActivity : ComponentActivity() {
         val factory = JugadorViewModelFactory(repository)
         jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
-        // Obtener SharedPreferences
         val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
 
         val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
@@ -122,7 +121,7 @@ fun HomeScreenWithTopBar(
                         isMusicMutedState = newState
                         sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                     },
-                    jugador = jugador // ✅ Le pasamos el jugador cargado
+                    jugador = jugador // Pasamos el jugador cargado
                 )
             }
         ) { paddingValues ->
