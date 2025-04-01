@@ -71,7 +71,7 @@ class GameActivity : ComponentActivity() {
             }
 
             jugador?.let { jugador ->
-                GameScreenWithTopBar(jugador = jugador, context = this) {
+                GameScreenWithTopBar(jugador = jugador, context = this, viewModel = jugadorViewModel ) {
                     jugadorViewModel.actualizarJugador(jugador)
                 }
             }
@@ -82,7 +82,7 @@ class GameActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun GameScreenWithTopBar(jugador: Jugador, context: Context, onGameFinished: () -> Unit) {
+fun GameScreenWithTopBar(jugador: Jugador, context: Context, viewModel: JugadorViewModel, onGameFinished: () -> Unit) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
 
@@ -108,14 +108,14 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context, onGameFinished: () 
                 .fillMaxSize()
                 .padding(paddingValues) // 🟢 Usamos correctamente el padding del Scaffold
         ) {
-            GameScreen(jugador = jugador, onGameFinished = onGameFinished)
+            GameScreen(jugador = jugador, viewModel = viewModel, onGameFinished = onGameFinished)
         }
     }
 }
 
 
 @Composable
-fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
+fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: () -> Unit) {
     var carrera by remember { mutableStateOf(Carrera()) }
     var cartaSacada by remember { mutableStateOf<Carta?>(null) }
     var cartasGiradas by remember { mutableStateOf(mutableSetOf<Int>()) }
@@ -137,7 +137,7 @@ fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
             val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
             Log.d("DEBUG", "Jugador: $jugador, Palo: ${jugador.palo}, Ganador: $ganador")
             jugador.actualizarMonedas(ganador)
-
+            viewModel.actualizarJugador(jugador)
 
             // Actualizamos estadísticas del jugador
             jugador.partidas += 1
@@ -448,7 +448,7 @@ fun obtenerImagenCarta(carta: Carta): Int {
     }
     return resId
 }
-@Preview(showBackground = true)
+/*@Preview(showBackground = true)
 @Composable
 fun PreviewGameScreenWithTopBar() {
     val fakeJugador = Jugador(
@@ -466,4 +466,4 @@ fun PreviewGameScreenWithTopBar() {
             onGameFinished = {}
         )
     }
-}
+}*/

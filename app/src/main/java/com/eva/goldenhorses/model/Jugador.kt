@@ -33,11 +33,10 @@ data class Jugador(
     }
 
     fun actualizarMonedas(ganador: String) {
-        apuesta?.let {
-            if (it.caballo == ganador) {
-                monedas += 80 // Gana 20x4
-            }
-            apuesta = null
+        if (palo == ganador) {
+            monedas += 80 // Gana 20x4
         }
+        apuesta = null
     }
 }
+

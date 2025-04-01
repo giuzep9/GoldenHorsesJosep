@@ -169,12 +169,12 @@ fun PlayerSelectionScreen(
     var paloSeleccionado by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
 
-    val palos = listOf("Oros", "Copas", "Bastos", "Espadas")
+    val palos = listOf("Oros", "Copas", "Espadas", "Bastos")
     val imagenesCaballos = mapOf(
         "Oros" to R.drawable.cab_oros,
         "Copas" to R.drawable.cab_copas,
-        "Bastos" to R.drawable.cab_bastos,
-        "Espadas" to R.drawable.cab_espadas
+        "Espadas" to R.drawable.cab_espadas,
+        "Bastos" to R.drawable.cab_bastos
     )
 
     Box(
@@ -209,8 +209,6 @@ fun PlayerSelectionScreen(
                             .padding(8.dp)
                             .clickable {
                                 paloSeleccionado = palo
-                                // Agregar un Log para verificar si el estado se actualiza correctamente
-                                Log.d("PlayerSelection", "Palo seleccionado: $paloSeleccionado")
                             }
                     ) {
                         Image(

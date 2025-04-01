@@ -67,7 +67,7 @@ fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Has perdido 😢", fontSize = 28.sp)
+                Text("Ha ganado: ", fontSize = 28.sp)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
