@@ -66,6 +66,7 @@ class GameActivity : ComponentActivity() {
                 val paloDesdeIntent = intent.getStringExtra("jugador_palo")
                 if (paloDesdeIntent != null) {
                     jugador?.realizarApuesta(paloDesdeIntent)
+                    jugador?.let { jugadorViewModel.actualizarJugador(it) }
                 }
             }
 
@@ -136,6 +137,7 @@ fun GameScreen(jugador: Jugador, onGameFinished: () -> Unit) {
             val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
             Log.d("DEBUG", "Jugador: $jugador, Palo: ${jugador.palo}, Ganador: $ganador")
             jugador.actualizarMonedas(ganador)
+
 
             // Actualizamos estadísticas del jugador
             jugador.partidas += 1

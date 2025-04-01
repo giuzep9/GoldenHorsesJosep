@@ -112,8 +112,11 @@ fun PlayerSelectionScreenWithTopBar(
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe({ jugadorExistente ->
-                        // ✅ Ya existe → lo actualizamos
-                        val jugadorActualizado = jugadorExistente.copy(palo = palo)
+                        // Ya existe, entonces lo actualizamos
+                        val jugadorActualizado = jugadorExistente
+                        jugadorActualizado.realizarApuesta(palo) //restar monedas de la apuesta
+                        jugadorActualizado.palo = palo
+
                         viewModel.actualizarJugador(jugadorActualizado)
 
                         val intent = Intent(context, GameActivity::class.java).apply {
@@ -128,7 +131,7 @@ fun PlayerSelectionScreenWithTopBar(
                     }, { error ->
                         error.printStackTrace()
                     }, {
-                        // 🆕 No existía → lo creamos
+                        // No existía entonces lo creamos
                         val nuevoJugador = Jugador(
                             nombre = nombre,
                             monedas = 100,
@@ -136,7 +139,7 @@ fun PlayerSelectionScreenWithTopBar(
                             victorias = 0,
                             palo = palo
                         )
-
+                        nuevoJugador.realizarApuesta(palo) // restar monedas al apostar
                         viewModel.insertarJugador(nuevoJugador)
 
                         val intent = Intent(context, GameActivity::class.java).apply {
