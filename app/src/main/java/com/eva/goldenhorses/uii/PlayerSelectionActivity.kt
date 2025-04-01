@@ -283,25 +283,31 @@ fun PlayerSelectionScreen(
     }
 }
 
-/*@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PreviewPlayerSelectionScreen() {
-    val fakeViewModel = remember {
-        val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
-            override suspend fun insertarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
-            override suspend fun obtenerJugador(nombre: String): com.eva.goldenhorses.model.Jugador? = null
-            override suspend fun actualizarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
-        }
-        val fakeRepository = com.eva.goldenhorses.repository.JugadorRepository(fakeDAO)
-        com.eva.goldenhorses.viewmodel.JugadorViewModel(fakeRepository)
+fun PreviewPlayerSelectionScreenWithTopBar() {
+    val fakeJugador = Jugador(
+        nombre = "JugadorDemo",
+        monedas = 100,
+        partidas = 5,
+        victorias = 2,
+        palo = "Copas"
+    )
+
+    val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
+        override fun insertarJugador(jugador: Jugador) = io.reactivex.rxjava3.core.Completable.complete()
+        override fun obtenerJugador(nombre: String) = io.reactivex.rxjava3.core.Maybe.just(fakeJugador)
+        override fun actualizarJugador(jugador: Jugador) = io.reactivex.rxjava3.core.Completable.complete()
     }
 
+    val fakeRepository = JugadorRepository(fakeDAO)
+    val fakeViewModel = JugadorViewModel(fakeRepository)
+
     GoldenHorsesTheme {
-        PlayerSelectionScreen(
+        PlayerSelectionScreenWithTopBar(
+            context = LocalContext.current,
             viewModel = fakeViewModel,
-            nombreJugador = "JugadorDemo",
-            onPlayerSelected = { _, _ -> }
+            nombreJugador = fakeJugador.nombre
         )
     }
 }
-*/

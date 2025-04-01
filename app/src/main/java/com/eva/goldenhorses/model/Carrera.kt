@@ -84,20 +84,10 @@ class Carrera {
         }
     }
 
-    fun reiniciarCarrera() {
-        caballos.forEach { it.posicion = 0 }
-        mazo.reiniciar()
-        generarCartasRetroceso()
-        ganador = null
-    }
-
     fun actualizarCaballoUI() {
         println("🔄 Actualizando UI con posiciones de los caballos")
         caballos.forEach { println("🏇 ${it.palo} en posición ${it.posicion}") }
     }
 
-    fun obtenerPosicionesCaballos(): Map<String, Int> {
-        return caballos.associate { it.palo to it.posicion }
-    }
 
 }

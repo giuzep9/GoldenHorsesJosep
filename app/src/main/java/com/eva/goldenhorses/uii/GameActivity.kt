@@ -29,11 +29,14 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.data.AppDatabase
+import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.*
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Maybe
 
 class GameActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -448,22 +451,34 @@ fun obtenerImagenCarta(carta: Carta): Int {
     }
     return resId
 }
-/*@Preview(showBackground = true)
+
+
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PreviewGameScreenWithTopBar() {
     val fakeJugador = Jugador(
         nombre = "JugadorDemo",
-        monedas = 100,
-        partidas = 3,
-        victorias = 1,
-        palo = "Copas"
+        monedas = 200,
+        partidas = 5,
+        victorias = 2,
+        palo = "Oros"
     )
+
+    val fakeDAO = object : JugadorDAO {
+        override fun insertarJugador(jugador: Jugador) = Completable.complete()
+        override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
+        override fun actualizarJugador(jugador: Jugador) = Completable.complete()
+    }
+
+    val fakeRepository = JugadorRepository(fakeDAO)
+    val fakeViewModel = JugadorViewModel(fakeRepository)
 
     GoldenHorsesTheme {
         GameScreenWithTopBar(
             jugador = fakeJugador,
             context = LocalContext.current,
+            viewModel = fakeViewModel,
             onGameFinished = {}
         )
     }
-}*/
+}

@@ -33,6 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -44,11 +45,14 @@ import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.data.AppDatabase
+import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Maybe
 
 class HomeActivity : ComponentActivity() {
 
@@ -209,30 +213,33 @@ fun HomeScreen(
 
 
 
-/*@Preview(showBackground = true)
+@Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PreviewHomeScreenWithTopBar() {
-    // Fake ViewModel y repositorio como antes
-    val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
-        override suspend fun insertarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
-        override suspend fun obtenerJugador(nombre: String): com.eva.goldenhorses.model.Jugador? {
-            return com.eva.goldenhorses.model.Jugador(nombre = nombre, monedas = 100, partidas = 3, victorias = 2)
-        }
-        override suspend fun actualizarJugador(jugador: com.eva.goldenhorses.model.Jugador) {}
+fun PreviewHomeScreen() {
+    val fakeJugador = Jugador(
+        nombre = "JugadorDemo",
+        monedas = 100,
+        partidas = 10,
+        victorias = 4,
+        palo = "Copas"
+    )
+
+    val fakeDAO = object : JugadorDAO {
+        override fun insertarJugador(jugador: Jugador) = Completable.complete()
+        override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
+        override fun actualizarJugador(jugador: Jugador) = Completable.complete()
     }
 
-    val fakeRepository = com.eva.goldenhorses.repository.JugadorRepository(fakeDAO)
-    val fakeViewModel = com.eva.goldenhorses.viewmodel.JugadorViewModel(fakeRepository)
-
-    val fakeContext = androidx.compose.ui.platform.LocalContext.current
+    val fakeRepository = JugadorRepository(fakeDAO)
+    val fakeViewModel = JugadorViewModel(fakeRepository)
 
     GoldenHorsesTheme {
         HomeScreenWithTopBar(
-            context = fakeContext,
+            context = LocalContext.current,
             viewModel = fakeViewModel,
-            nombreJugador = "JugadorDemo"
+            nombreJugador = fakeJugador.nombre
         )
     }
 }
-*/
+
 
