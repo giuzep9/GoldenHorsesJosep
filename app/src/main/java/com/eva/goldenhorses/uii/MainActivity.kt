@@ -32,10 +32,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    private fun navigateToPlayerSelection() {
-        val intent = Intent(this, PlayerSelectionActivity::class.java)
-        startActivity(intent)
-    }
     private fun navigateToLogin() {
         val intent = Intent(this, LoginActivity::class.java)
         startActivity(intent)

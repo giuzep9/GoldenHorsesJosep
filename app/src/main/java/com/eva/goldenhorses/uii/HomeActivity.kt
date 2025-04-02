@@ -79,8 +79,6 @@ class HomeActivity : ComponentActivity() {
         val factory = JugadorViewModelFactory(repository)
         jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
-        val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-
         val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
 
         if (!nombreJugadorIntent.isNullOrEmpty()) {
@@ -168,7 +166,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 180.dp),
+                .padding(top = 70.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(

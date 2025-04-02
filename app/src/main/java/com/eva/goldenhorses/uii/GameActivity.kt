@@ -396,13 +396,6 @@ fun AnimatedCaballo(caballo: Caballo) {
     }
 }
 
-// Función para reiniciar el juego
-fun reiniciarJuego(context: Context) {
-    val intent = Intent(context, PlayerSelectionActivity::class.java)
-    intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
-    context.startActivity(intent)
-}
-
 // Función para obtener la imagen de una carta
 fun obtenerImagenCarta(carta: Carta): Int {
     val nombreRecurso = "carta_${carta.palo.lowercase()}_${carta.valor}"

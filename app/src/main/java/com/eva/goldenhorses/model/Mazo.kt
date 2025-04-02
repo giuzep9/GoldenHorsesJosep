@@ -39,12 +39,6 @@ class Mazo {
         return cartas.removeAt(0)?.also { descarte.add(it) } // Agregar la carta al descarte
     }
 
-    // Reinicia el mazo a su estado original para un nuevo juego
-    fun reiniciar() {
-        generarBaraja()
-        barajar()
-    }
-
     private fun reciclarMazo() {
         println("♻️ Recargando el mazo con las cartas usadas...")
         cartas.addAll(descarte) // Pasamos las cartas usadas al mazo
