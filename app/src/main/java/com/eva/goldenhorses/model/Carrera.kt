@@ -45,8 +45,7 @@ class Carrera {
 
 
     fun todosCaballosAlNivel(nivel: Int): Boolean {
-        println("Verificando si todos los caballos han alcanzado el nivel $nivel")
-        caballos.forEach { println("🏇 Caballo ${it.palo}: Posición ${it.posicion}") }
+        caballos.forEach { println("Caballo ${it.palo}: Posición ${it.posicion}") }
         return caballos.all { it.posicion >= nivel }
     }
 
@@ -57,11 +56,8 @@ class Carrera {
     fun retrocederCaballo(palo: String) {
         val caballo = caballos.find { it.palo == palo }
         if (caballo != null && caballo.posicion > 0) {
-            println("⚠️ Retrocediendo caballo $palo de posición ${caballo.posicion} a ${caballo.posicion - 1}")
             caballo.retroceder()
             actualizarCaballoUI()
-        } else {
-            println("❌ No se puede retroceder el caballo $palo porque está en la posición inicial")
         }
     }
 
@@ -85,8 +81,7 @@ class Carrera {
     }
 
     fun actualizarCaballoUI() {
-        println("🔄 Actualizando UI con posiciones de los caballos")
-        caballos.forEach { println("🏇 ${it.palo} en posición ${it.posicion}") }
+        caballos.forEach { println(" ${it.palo} en posición ${it.posicion}") }
     }
 
 

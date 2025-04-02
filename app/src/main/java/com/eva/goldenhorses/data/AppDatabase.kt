@@ -6,7 +6,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import com.eva.goldenhorses.model.Jugador
 
-@Database(entities = [Jugador::class], version = 2, exportSchema = false) // Cambia la versión
+@Database(entities = [Jugador::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
 
     abstract fun jugadorDAO(): JugadorDAO

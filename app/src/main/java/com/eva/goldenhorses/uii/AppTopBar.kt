@@ -31,7 +31,7 @@ fun AppTopBar(
     var showMenu by remember { mutableStateOf(false) }
 
     TopAppBar(
-        title = { /* Puedes agregar un título si quieres */ },
+        title = {},
         navigationIcon = {
             IconButton(onClick = { showMenu = true }) {
                 Image(
@@ -93,6 +93,6 @@ fun PreviewAppTopBar() {
         context = LocalContext.current,
         isMusicMuted = isMusicMuted,
         onToggleMusic = { newState -> isMusicMuted = newState },
-        jugador = Jugador(nombre = "Jugador1", monedas = 100, palo = "Oros") // Ahora pasamos también el valor de palo
+        jugador = Jugador(nombre = "Jugador1", monedas = 100, palo = "Oros")
     )
 }

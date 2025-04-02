@@ -37,9 +37,7 @@ import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.schedulers.Schedulers
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+
 
 class PlayerSelectionActivity : ComponentActivity() {
 

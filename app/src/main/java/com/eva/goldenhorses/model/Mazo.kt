@@ -40,7 +40,6 @@ class Mazo {
     }
 
     private fun reciclarMazo() {
-        println("♻️ Recargando el mazo con las cartas usadas...")
         cartas.addAll(descarte) // Pasamos las cartas usadas al mazo
         descarte.clear() // Limpiamos el descarte
         barajar() // Mezclamos nuevamente

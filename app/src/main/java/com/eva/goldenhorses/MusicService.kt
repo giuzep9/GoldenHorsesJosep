@@ -11,28 +11,28 @@ class MusicService : Service() {
 
     override fun onCreate() {
         super.onCreate()
-        mediaPlayer = MediaPlayer.create(this, R.raw.background_music) // Replace with your MP3 file name
-        mediaPlayer?.isLooping = true // Loop the music
-        mediaPlayer?.setVolume(1.0f, 1.0f) // Set initial volume to max
+        mediaPlayer = MediaPlayer.create(this, R.raw.background_music) // Introducimos la música
+        mediaPlayer?.isLooping = true
+        mediaPlayer?.setVolume(1.0f, 1.0f) // Inicializamos el volumen al máximo
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.action) {
             "MUTE" -> {
                 isMuted = true
-                mediaPlayer?.setVolume(0f, 0f) // Mute music
+                mediaPlayer?.setVolume(0f, 0f) // Mutear
             }
             "UNMUTE" -> {
                 isMuted = false
-                mediaPlayer?.setVolume(1.0f, 1.0f) // Restore volume
+                mediaPlayer?.setVolume(1.0f, 1.0f) // Desmutear
             }
             else -> {
                 if (mediaPlayer?.isPlaying == false) {
-                    mediaPlayer?.start() // Start playing if not already playing
+                    mediaPlayer?.start() // Si no está la música sonando que suene
                 }
             }
         }
-        return START_STICKY // Keep service running
+        return START_STICKY // Mantenerlo encendido
     }
 
     override fun onDestroy() {

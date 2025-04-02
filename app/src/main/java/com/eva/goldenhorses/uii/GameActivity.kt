@@ -373,29 +373,6 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
     }
 }
 
-
-// Animación del caballo moviéndose en el eje Y
-@Composable
-fun AnimatedCaballo(caballo: Caballo) {
-    val animatedOffset by animateDpAsState(
-        targetValue = (-caballo.posicion * 60).dp, // Movimiento animado en el eje Y
-        animationSpec = tween(durationMillis = 1000)
-    )
-
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier
-            .offset(y = animatedOffset) // Se mueve de forma fluida en el eje Y
-            .padding(4.dp)
-    ) {
-        Image(
-            painter = painterResource(id = obtenerImagenCarta(Carta(caballo.palo, 11))),
-            contentDescription = "Caballo ${caballo.palo}",
-            modifier = Modifier.size(60.dp)
-        )
-    }
-}
-
 // Función para obtener la imagen de una carta
 fun obtenerImagenCarta(carta: Carta): Int {
     val nombreRecurso = "carta_${carta.palo.lowercase()}_${carta.valor}"
