@@ -158,6 +158,9 @@ fun PreviewLoginScreen() {
         override fun insertarJugador(jugador: Jugador) = Completable.complete()
         override fun obtenerJugador(nombre: String) = Maybe.empty<Jugador>()
         override fun actualizarJugador(jugador: Jugador) = Completable.complete()
+        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
+            return Completable.complete()
+        }
     }
 
     val fakeRepository = com.eva.goldenhorses.repository.JugadorRepository(fakeDAO)

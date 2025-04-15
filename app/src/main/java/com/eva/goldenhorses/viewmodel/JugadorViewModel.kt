@@ -73,6 +73,18 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
         disposables.add(disposable)
     }
 
+    fun actualizarUbicacion(nombre: String, lat: Double, lon: Double) {
+        val disposable = repository.actualizarUbicacion(nombre, lat, lon)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                // Actualización exitosa
+            }, {
+                it.printStackTrace()
+            })
+        disposables.add(disposable)
+    }
+
     override fun onCleared() {
         super.onCleared()
         disposables.clear()

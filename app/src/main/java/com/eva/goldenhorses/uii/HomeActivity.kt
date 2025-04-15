@@ -53,10 +53,17 @@ import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import android.location.Location
+import android.content.pm.PackageManager
+import androidx.core.app.ActivityCompat
+
 
 class HomeActivity : ComponentActivity() {
 
     private lateinit var jugadorViewModel: JugadorViewModel
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -88,9 +95,40 @@ class HomeActivity : ComponentActivity() {
         val nombreJugador = SessionManager.obtenerJugador(this)
         Log.d("HomeActivity", "Nombre obtenido de SessionManager: $nombreJugador")
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        obtenerUbicacion(nombreJugador)
+
         setContent {
             HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)
         }
+    }
+
+    private fun obtenerUbicacion(nombreJugador: String) {
+        // Solicitar permiso si no está concedido
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                1001
+            )
+            return
+        }
+
+        // Obtener última ubicación conocida
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                location?.let {
+                    val lat = it.latitude
+                    val lon = it.longitude
+                    Log.d("UBICACION", "Lat: $lat, Lon: $lon")
+
+                    // Guardar ubicación en base de datos
+                    jugadorViewModel.actualizarUbicacion(nombreJugador, lat, lon)
+                }
+            }
     }
 }
 
@@ -225,6 +263,9 @@ fun PreviewHomeScreen() {
         override fun insertarJugador(jugador: Jugador) = Completable.complete()
         override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
         override fun actualizarJugador(jugador: Jugador) = Completable.complete()
+        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
+            return Completable.complete()
+        }
     }
 
     val fakeRepository = JugadorRepository(fakeDAO)

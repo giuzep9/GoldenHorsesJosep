@@ -36,6 +36,7 @@ import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -298,6 +299,9 @@ fun PreviewPlayerSelectionScreenWithTopBar() {
         override fun insertarJugador(jugador: Jugador) = io.reactivex.rxjava3.core.Completable.complete()
         override fun obtenerJugador(nombre: String) = io.reactivex.rxjava3.core.Maybe.just(fakeJugador)
         override fun actualizarJugador(jugador: Jugador) = io.reactivex.rxjava3.core.Completable.complete()
+        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
+            return Completable.complete()
+        }
     }
 
     val fakeRepository = JugadorRepository(fakeDAO)
