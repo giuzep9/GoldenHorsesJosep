@@ -57,7 +57,9 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import android.location.Location
 import android.content.pm.PackageManager
+import android.widget.Toast
 import androidx.core.app.ActivityCompat
+import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 
 
 class HomeActivity : ComponentActivity() {
@@ -127,6 +129,11 @@ class HomeActivity : ComponentActivity() {
 
                     // Guardar ubicación en base de datos
                     jugadorViewModel.actualizarUbicacion(nombreJugador, lat, lon)
+                    jugadorViewModel.actualizarPaisDesdeUbicacion(this, lat, lon)
+
+                    // Mostramos país con Toast
+                    val pais = obtenerPaisDesdeUbicacion(this, lat, lon)
+                    Toast.makeText(this, "Estás en: $pais", Toast.LENGTH_LONG).show()
                 }
             }
     }
@@ -141,6 +148,17 @@ fun HomeScreenWithTopBar(
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
     val jugador by viewModel.jugador.collectAsState()
+
+    // Calcular el país desde la latitud y longitud del jugador
+    val pais = remember(jugador) {
+        val currentJugador = jugador
+        val lat = currentJugador?.latitud
+        val lon = currentJugador?.longitud
+
+        if (lat != null && lon != null) {
+            obtenerPaisDesdeUbicacion(context, lat, lon)
+        } else null
+    }
 
     LaunchedEffect(nombreJugador) {
         viewModel.iniciarSesion(nombreJugador)
@@ -157,7 +175,8 @@ fun HomeScreenWithTopBar(
                         isMusicMutedState = newState
                         sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                     },
-                    jugador = jugador // Pasamos el jugador cargado
+                    jugador = jugador, // Pasamos el jugador cargado
+                    pais = pais // Pasamos el país a la AppTopBar
                 )
             }
         ) { paddingValues ->
@@ -245,8 +264,6 @@ fun HomeScreen(
         }
     }
 }
-
-
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable

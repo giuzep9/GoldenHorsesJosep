@@ -19,6 +19,10 @@ import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.model.Jugador
+import android.location.Geocoder
+import java.util.*
+import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,9 +30,11 @@ fun AppTopBar(
     context: Context,
     isMusicMuted: Boolean,
     onToggleMusic: (Boolean) -> Unit,
-    jugador: Jugador? = null
+    jugador: Jugador? = null,
+    pais: String? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showLocationMenu by remember { mutableStateOf(false) }
 
     TopAppBar(
         title = { /* Puedes agregar un título si quieres */ },
@@ -67,6 +73,28 @@ fun AppTopBar(
         actions = {
             if (jugador != null) {
 
+                // Icono de ubicación
+                IconButton(onClick = { showLocationMenu = true }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_ubicacion),
+                        contentDescription = "Ubicación",
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showLocationMenu,
+                    onDismissRequest = { showLocationMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(text = pais ?: "Ubicación desconocida") },
+                        onClick = {
+                            showLocationMenu = false
+                        }
+                    )
+                }
+
+
                 Text(
                     text = "${jugador.monedas}",
                     color = Color(0xFF343F4B),
@@ -80,19 +108,35 @@ fun AppTopBar(
                     contentDescription = "Coins Icon",
                     modifier = Modifier.size(40.dp)
                 )
+
+
             }
         }
     )
 }
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewAppTopBar() {
     var isMusicMuted by remember { mutableStateOf(false) }
 
+    val fakeJugador = Jugador(
+        nombre = "Jugador1",
+        monedas = 100,
+        partidas = 5,
+        victorias = 2,
+        palo = "Oros"
+    ).apply {
+        latitud = 40.4168  // Madrid, por ejemplo
+        longitud = -3.7038
+    }
+
     AppTopBar(
         context = LocalContext.current,
         isMusicMuted = isMusicMuted,
         onToggleMusic = { newState -> isMusicMuted = newState },
-        jugador = Jugador(nombre = "Jugador1", monedas = 100, palo = "Oros") // Ahora pasamos también el valor de palo
+        jugador = fakeJugador
     )
 }
+
+
