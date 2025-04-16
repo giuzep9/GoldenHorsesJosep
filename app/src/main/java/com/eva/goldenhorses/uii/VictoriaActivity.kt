@@ -1,5 +1,6 @@
 package com.eva.goldenhorses.uii
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,6 +21,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
+import androidx.compose.ui.res.stringResource
 
 class VictoriaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -31,11 +35,16 @@ class VictoriaActivity : ComponentActivity() {
             VictoriaScreen(caballoPalo = caballoPalo, nombreJugador = nombreJugador)
         }
     }
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
+    }
 }
 
 @Composable
 fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
     val context = LocalContext.current
+    val idioma = obtenerIdioma(context)
 
     val icono = when (caballoPalo) {
         "Oros" -> R.drawable.cab_oros
@@ -45,12 +54,16 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
         else -> R.drawable.mazo
     }
 
+    val fondoVictoria = if (idioma == "en") R.drawable.fondo_victory else R.drawable.fondo_victoria
+    val botonVolverJugar = if (idioma == "en") R.drawable.boton_replay else R.drawable.volver_jugar
+    val botonVolverInicio = if (idioma == "en") R.drawable.boton_home else R.drawable.volver_inicio
+
     Box(
         modifier = Modifier.fillMaxSize()
     ) {
         // Fondo
         Image(
-            painter = painterResource(id = R.drawable.fondo_victoria),
+            painter = painterResource(id = fondoVictoria),
             contentDescription = "Fondo victoria",
             modifier = Modifier.fillMaxSize(),
             contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -70,7 +83,7 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("¡Has ganado!", fontSize = 28.sp)
+                Text(text = stringResource(id = R.string.winner), fontSize = 28.sp)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -83,7 +96,7 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Image(
-                    painter = painterResource(id = R.drawable.volver_jugar),
+                    painter = painterResource(id = botonVolverJugar),
                     contentDescription = "Volver a Jugar",
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
@@ -98,7 +111,7 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Image(
-                    painter = painterResource(id = R.drawable.volver_inicio),
+                    painter = painterResource(id = botonVolverInicio),
                     contentDescription = "Volver a Inicio",
                     modifier = Modifier
                         .fillMaxWidth(0.55f)

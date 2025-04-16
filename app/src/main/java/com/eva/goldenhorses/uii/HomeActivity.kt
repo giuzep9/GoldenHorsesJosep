@@ -60,6 +60,9 @@ import android.content.pm.PackageManager
 import android.widget.Toast
 import androidx.core.app.ActivityCompat
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
+import androidx.compose.ui.res.stringResource
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
 
 
 class HomeActivity : ComponentActivity() {
@@ -104,6 +107,11 @@ class HomeActivity : ComponentActivity() {
         setContent {
             HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
     }
 
     private fun obtenerUbicacion(nombreJugador: String) {
@@ -206,7 +214,9 @@ fun HomeScreen(
     val partidas = jugador?.partidas ?: 0
     val victorias = jugador?.victorias ?: 0
     val nombreJugador = jugador?.nombre ?: "Cargando..."
-
+    val context = LocalContext.current
+    val idioma = obtenerIdioma(context)
+    val botonJugarImage = if (idioma == "en") R.drawable.boton_play else R.drawable.boton_jugar
 
     Box(
         modifier = modifier
@@ -243,8 +253,17 @@ fun HomeScreen(
                 modifier = Modifier.padding(10.dp)
             )
 
-            Text(text = "Número de partidas: $partidas", fontSize = 18.sp, color = Color.Black)
-            Text(text = "Victorias: $victorias", fontSize = 18.sp, color = Color.Black, modifier = Modifier.padding(bottom = 32.dp))
+            Text(
+                text = "${stringResource(R.string.numero_partidas)}: $partidas",
+                fontSize = 18.sp,
+                color = Color.Black
+            )
+            Text(
+                text = "${stringResource(R.string.victorias)}: $victorias",
+                fontSize = 18.sp,
+                color = Color.Black,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
 
             Column(
                 modifier = Modifier
@@ -254,8 +273,8 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.boton_jugar),
-                    contentDescription = "Botón JUGAR",
+                    painter = painterResource(id = botonJugarImage),
+                    contentDescription = "Botón JUGAR / START",
                     modifier = Modifier
                         .size(200.dp, 80.dp)
                         .clickable { onPlayClick() }
@@ -267,34 +286,44 @@ fun HomeScreen(
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PreviewHomeScreen() {
+fun PreviewHomeScreenWithTopBar() {
     val fakeJugador = Jugador(
         nombre = "JugadorDemo",
         monedas = 100,
         partidas = 10,
         victorias = 4,
         palo = "Copas"
-    )
-
-    val fakeDAO = object : JugadorDAO {
-        override fun insertarJugador(jugador: Jugador) = Completable.complete()
-        override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
-        override fun actualizarJugador(jugador: Jugador) = Completable.complete()
-        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
-            return Completable.complete()
-        }
+    ).apply {
+        latitud = 43.2630  // Bilbao
+        longitud = -2.9350
     }
 
-    val fakeRepository = JugadorRepository(fakeDAO)
-    val fakeViewModel = JugadorViewModel(fakeRepository)
+    val paisSimulado = "Spain"
+    var isMusicMuted by remember { mutableStateOf(false) }
 
     GoldenHorsesTheme {
-        HomeScreenWithTopBar(
-            context = LocalContext.current,
-            viewModel = fakeViewModel,
-            nombreJugador = fakeJugador.nombre
-        )
+        Scaffold(
+            topBar = {
+                AppTopBar(
+                    context = LocalContext.current,
+                    isMusicMuted = isMusicMuted,
+                    onToggleMusic = { isMusicMuted = it },
+                    jugador = fakeJugador,
+                    pais = paisSimulado
+                )
+            }
+        ) { padding ->
+            HomeScreen(
+                jugador = fakeJugador,
+                onPlayClick = {},
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            )
+        }
     }
 }
+
+
 
 

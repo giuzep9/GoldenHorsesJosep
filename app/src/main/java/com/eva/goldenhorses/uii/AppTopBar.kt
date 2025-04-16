@@ -20,8 +20,12 @@ import com.eva.goldenhorses.R
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.model.Jugador
 import android.location.Geocoder
+import android.widget.Toast
+import com.eva.goldenhorses.utils.cambiarIdioma
+import com.eva.goldenhorses.utils.guardarIdioma
 import java.util.*
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
+import com.eva.goldenhorses.utils.restartApp
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -34,6 +38,7 @@ fun AppTopBar(
     pais: String? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showLanguageMenu by remember { mutableStateOf(false) }
     var showLocationMenu by remember { mutableStateOf(false) }
 
     TopAppBar(
@@ -50,6 +55,7 @@ fun AppTopBar(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false }
             ) {
+                // MUTE - UNMUTE
                 DropdownMenuItem(
                     text = { Text(if (isMusicMuted) "Unmute Music" else "Mute Music") },
                     onClick = {
@@ -64,7 +70,44 @@ fun AppTopBar(
                         context.startService(intent)
                     }
                 )
+
+                // Submenú de idiomas
+                DropdownMenuItem(
+                    text = { Text("Idioma / Language") },
+                    onClick = {
+                        showLanguageMenu = true
+                        showMenu = false
+                    }
+                )
             }
+
+            // Menú de idiomas
+            DropdownMenu(
+                expanded = showLanguageMenu,
+                onDismissRequest = { showLanguageMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Español") },
+                    onClick = {
+                        guardarIdioma(context, "es")
+                        cambiarIdioma(context, "es")
+                        restartApp(context)
+                        showLanguageMenu = false
+                        Toast.makeText(context, "Idioma cambiado a Español", Toast.LENGTH_SHORT).show()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("English") },
+                    onClick = {
+                        guardarIdioma(context, "en")
+                        cambiarIdioma(context, "en")
+                        restartApp(context)
+                        showLanguageMenu = false
+                        Toast.makeText(context, "Language changed to English", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color(0xFF9DC4E3),
@@ -94,7 +137,6 @@ fun AppTopBar(
                     )
                 }
 
-
                 Text(
                     text = "${jugador.monedas}",
                     color = Color(0xFF343F4B),
@@ -108,7 +150,6 @@ fun AppTopBar(
                     contentDescription = "Coins Icon",
                     modifier = Modifier.size(40.dp)
                 )
-
 
             }
         }
