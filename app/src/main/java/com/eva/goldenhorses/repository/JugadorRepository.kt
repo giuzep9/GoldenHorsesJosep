@@ -16,5 +16,8 @@ class JugadorRepository(private val jugadorDAO: JugadorDAO) {
 
     fun actualizarJugador(jugador: Jugador): Completable =
         jugadorDAO.actualizarJugador(jugador)
+
+    fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable =
+        jugadorDAO.actualizarUbicacion(nombre, lat, lon)
 }
 

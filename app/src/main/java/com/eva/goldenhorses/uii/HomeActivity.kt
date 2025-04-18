@@ -50,10 +50,22 @@ import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import android.location.Location
+import android.content.pm.PackageManager
+import android.widget.Toast
+import androidx.core.app.ActivityCompat
+import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
+import androidx.compose.ui.res.stringResource
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
+
 
 class HomeActivity : ComponentActivity() {
 
     private lateinit var jugadorViewModel: JugadorViewModel
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -85,9 +97,50 @@ class HomeActivity : ComponentActivity() {
         val nombreJugador = SessionManager.obtenerJugador(this)
         Log.d("HomeActivity", "Nombre obtenido de SessionManager: $nombreJugador")
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        obtenerUbicacion(nombreJugador)
+
         setContent {
             HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
+    }
+
+    private fun obtenerUbicacion(nombreJugador: String) {
+        // Solicitar permiso si no está concedido
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                1001
+            )
+            return
+        }
+
+        // Obtener última ubicación conocida
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                location?.let {
+                    val lat = it.latitude
+                    val lon = it.longitude
+                    Log.d("UBICACION", "Lat: $lat, Lon: $lon")
+
+                    // Guardar ubicación en base de datos
+                    jugadorViewModel.actualizarUbicacion(nombreJugador, lat, lon)
+                    jugadorViewModel.actualizarPaisDesdeUbicacion(this, lat, lon)
+
+                    // Mostramos país con Toast
+                    val pais = obtenerPaisDesdeUbicacion(this, lat, lon)
+                    Toast.makeText(this, "Estás en: $pais", Toast.LENGTH_LONG).show()
+                }
+            }
     }
 }
 
@@ -100,6 +153,17 @@ fun HomeScreenWithTopBar(
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
     val jugador by viewModel.jugador.collectAsState()
+
+    // Calcular el país desde la latitud y longitud del jugador
+    val pais = remember(jugador) {
+        val currentJugador = jugador
+        val lat = currentJugador?.latitud
+        val lon = currentJugador?.longitud
+
+        if (lat != null && lon != null) {
+            obtenerPaisDesdeUbicacion(context, lat, lon)
+        } else null
+    }
 
     LaunchedEffect(nombreJugador) {
         viewModel.iniciarSesion(nombreJugador)
@@ -116,7 +180,8 @@ fun HomeScreenWithTopBar(
                         isMusicMutedState = newState
                         sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                     },
-                    jugador = jugador // Pasamos el jugador cargado
+                    jugador = jugador, // Pasamos el jugador cargado
+                    pais = pais // Pasamos el país a la AppTopBar
                 )
             }
         ) { paddingValues ->
@@ -146,7 +211,9 @@ fun HomeScreen(
     val partidas = jugador?.partidas ?: 0
     val victorias = jugador?.victorias ?: 0
     val nombreJugador = jugador?.nombre ?: "Cargando..."
-
+    val context = LocalContext.current
+    val idioma = obtenerIdioma(context)
+    val botonJugarImage = if (idioma == "en") R.drawable.boton_play else R.drawable.boton_jugar
 
     Box(
         modifier = modifier
@@ -183,8 +250,17 @@ fun HomeScreen(
                 modifier = Modifier.padding(10.dp)
             )
 
-            Text(text = "Número de partidas: $partidas", fontSize = 18.sp, color = Color.Black)
-            Text(text = "Victorias: $victorias", fontSize = 18.sp, color = Color.Black, modifier = Modifier.padding(bottom = 32.dp))
+            Text(
+                text = "${stringResource(R.string.numero_partidas)}: $partidas",
+                fontSize = 18.sp,
+                color = Color.Black
+            )
+            Text(
+                text = "${stringResource(R.string.victorias)}: $victorias",
+                fontSize = 18.sp,
+                color = Color.Black,
+                modifier = Modifier.padding(bottom = 32.dp)
+            )
 
             Column(
                 modifier = Modifier
@@ -194,8 +270,8 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.Bottom
             ) {
                 Image(
-                    painter = painterResource(id = R.drawable.boton_jugar),
-                    contentDescription = "Botón JUGAR",
+                    painter = painterResource(id = botonJugarImage),
+                    contentDescription = "Botón JUGAR / START",
                     modifier = Modifier
                         .size(200.dp, 80.dp)
                         .clickable { onPlayClick() }
@@ -205,35 +281,46 @@ fun HomeScreen(
     }
 }
 
-
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-fun PreviewHomeScreen() {
+fun PreviewHomeScreenWithTopBar() {
     val fakeJugador = Jugador(
         nombre = "JugadorDemo",
         monedas = 100,
         partidas = 10,
         victorias = 4,
         palo = "Copas"
-    )
-
-    val fakeDAO = object : JugadorDAO {
-        override fun insertarJugador(jugador: Jugador) = Completable.complete()
-        override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
-        override fun actualizarJugador(jugador: Jugador) = Completable.complete()
+    ).apply {
+        latitud = 43.2630  // Bilbao
+        longitud = -2.9350
     }
 
-    val fakeRepository = JugadorRepository(fakeDAO)
-    val fakeViewModel = JugadorViewModel(fakeRepository)
+    val paisSimulado = "Spain"
+    var isMusicMuted by remember { mutableStateOf(false) }
 
     GoldenHorsesTheme {
-        HomeScreenWithTopBar(
-            context = LocalContext.current,
-            viewModel = fakeViewModel,
-            nombreJugador = fakeJugador.nombre
-        )
+        Scaffold(
+            topBar = {
+                AppTopBar(
+                    context = LocalContext.current,
+                    isMusicMuted = isMusicMuted,
+                    onToggleMusic = { isMusicMuted = it },
+                    jugador = fakeJugador,
+                    pais = paisSimulado
+                )
+            }
+        ) { padding ->
+            HomeScreen(
+                jugador = fakeJugador,
+                onPlayClick = {},
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(padding)
+            )
+        }
     }
 }
+
+
 
 

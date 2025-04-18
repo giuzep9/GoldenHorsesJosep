@@ -21,6 +21,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -33,9 +34,12 @@ import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.schedulers.Schedulers
 
 
@@ -67,6 +71,11 @@ class PlayerSelectionActivity : ComponentActivity() {
         setContent {
             PlayerSelectionScreenWithTopBar(context = this, viewModel = jugadorViewModel, nombreJugador = nombreJugador)
         }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
     }
 }
 
@@ -166,6 +175,13 @@ fun PlayerSelectionScreen(
 ) {
     var paloSeleccionado by remember { mutableStateOf<String?>(null) }
     val context = LocalContext.current
+    val idioma = obtenerIdioma(context)
+    val botonApostarImage = if (idioma == "en") R.drawable.boton_bet else R.drawable.boton_apostar
+    val textoEligeCaballo = stringResource(R.string.select_your_horse)
+    val textoTuApuesta = stringResource(R.string.your_bet)
+    val textoSeleccionaCaballo = stringResource(R.string.select_horse_toast)
+    val textoSinMonedas = stringResource(R.string.no_coins_toast)
+
 
     val palos = listOf("Oros", "Copas", "Espadas", "Bastos")
     val imagenesCaballos = mapOf(
@@ -190,9 +206,9 @@ fun PlayerSelectionScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            Spacer(modifier = Modifier.height(200.dp))
+            Spacer(modifier = Modifier.height(170.dp))
 
-            Text("Elige tu caballo", fontSize = 36.sp, fontWeight = FontWeight.Bold)
+            Text(textoEligeCaballo, fontSize = 36.sp, fontWeight = FontWeight.Bold)
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -225,7 +241,7 @@ fun PlayerSelectionScreen(
 
             Spacer(modifier = Modifier.weight(0.5f))
 
-            Text("Tu apuesta:", fontSize = 32.sp, color = Color.Black)
+            Text(textoTuApuesta, fontSize = 32.sp, color = Color.Black)
             Spacer(modifier = Modifier.height(8.dp))
 
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -241,13 +257,17 @@ fun PlayerSelectionScreen(
             Spacer(modifier = Modifier.weight(3f))
 
             Image(
-                painter = painterResource(id = R.drawable.boton_apostar),
-                contentDescription = "Jugar",
+                painter = painterResource(id = botonApostarImage),
+                contentDescription = if (idioma == "en") "Bet" else "Apostar",
                 modifier = Modifier
                     .size(190.dp, 200.dp)
                     .clickable {
                         if (paloSeleccionado == null) {
-                            Toast.makeText(context, "Selecciona un caballo", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(
+                                context,
+                                textoSeleccionaCaballo,
+                                Toast.LENGTH_SHORT
+                            ).show()
                         } else {
                             val disposable = viewModel.repository.obtenerJugador(nombreJugador)
                                 .subscribeOn(Schedulers.io())
@@ -257,10 +277,9 @@ fun PlayerSelectionScreen(
                                         if (jugadorExistente.monedas == 0) {
                                             Toast.makeText(
                                                 context,
-                                                "¡No te quedan monedas! Te regalamos 20 más para que puedas jugar!",
+                                                textoSinMonedas,
                                                 Toast.LENGTH_LONG
                                             ).show()
-
                                             val jugadorActualizado = jugadorExistente.copy(monedas = 20)
                                             viewModel.actualizarJugador(jugadorActualizado)
                                         } else {
@@ -296,6 +315,9 @@ fun PreviewPlayerSelectionScreenWithTopBar() {
         override fun insertarJugador(jugador: Jugador) = io.reactivex.rxjava3.core.Completable.complete()
         override fun obtenerJugador(nombre: String) = io.reactivex.rxjava3.core.Maybe.just(fakeJugador)
         override fun actualizarJugador(jugador: Jugador) = io.reactivex.rxjava3.core.Completable.complete()
+        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
+            return Completable.complete()
+        }
     }
 
     val fakeRepository = JugadorRepository(fakeDAO)

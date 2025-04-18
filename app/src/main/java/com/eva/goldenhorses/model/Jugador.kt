@@ -11,6 +11,9 @@ data class Jugador(
     var partidas: Int = 0,          // Número total de partidas
     var victorias: Int = 0,          // Número de partidas ganadas
     var palo: String = "Oros",
+    var latitud: Double? = null,
+    var longitud: Double? = null,
+
     @Ignore var apuesta: Apuesta? = null // Igual, solo aplica a lógica temporal
 ) {
     constructor(nombre: String, monedas: Int, partidas: Int, victorias: Int) : this(
@@ -19,6 +22,7 @@ data class Jugador(
         partidas,
         victorias,
         "Oros", // valor por defecto para que Room lo acepte
+        null,
         null
     )
 

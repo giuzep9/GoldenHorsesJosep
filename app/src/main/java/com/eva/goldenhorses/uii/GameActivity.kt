@@ -33,6 +33,8 @@ import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.*
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.core.Completable
@@ -79,7 +81,10 @@ class GameActivity : ComponentActivity() {
                 }
             }
         }
-
+    }
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
     }
 }
 
@@ -127,6 +132,8 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
     }
     var carreraFinalizada by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val idioma = obtenerIdioma(context)
+    val botonSacarCartaImage = if (idioma == "en") R.drawable.boton_card else R.drawable.btn_carta
 
     val imagenesCaballos = mapOf(
         "Oros" to R.drawable.cab_oros,
@@ -331,8 +338,8 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             ) {
                 if (!carreraFinalizada) {
                     Image(
-                        painter = painterResource(id = R.drawable.btn_carta),
-                        contentDescription = "Sacar Carta",
+                        painter = painterResource(id = botonSacarCartaImage),
+                        contentDescription = if (idioma == "en") "Draw Card" else "Sacar Carta",
                         modifier = Modifier
                             .size(200.dp, 80.dp)
                             .wrapContentSize()
@@ -438,6 +445,9 @@ fun PreviewGameScreenWithTopBar() {
         override fun insertarJugador(jugador: Jugador) = Completable.complete()
         override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
         override fun actualizarJugador(jugador: Jugador) = Completable.complete()
+        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
+            return Completable.complete()
+        }
     }
 
     val fakeRepository = JugadorRepository(fakeDAO)

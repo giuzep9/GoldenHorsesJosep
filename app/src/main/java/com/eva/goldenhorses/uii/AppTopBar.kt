@@ -19,6 +19,14 @@ import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.model.Jugador
+import android.location.Geocoder
+import android.widget.Toast
+import com.eva.goldenhorses.utils.cambiarIdioma
+import com.eva.goldenhorses.utils.guardarIdioma
+import java.util.*
+import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
+import com.eva.goldenhorses.utils.restartApp
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -26,12 +34,15 @@ fun AppTopBar(
     context: Context,
     isMusicMuted: Boolean,
     onToggleMusic: (Boolean) -> Unit,
-    jugador: Jugador? = null
+    jugador: Jugador? = null,
+    pais: String? = null
 ) {
     var showMenu by remember { mutableStateOf(false) }
+    var showLanguageMenu by remember { mutableStateOf(false) }
+    var showLocationMenu by remember { mutableStateOf(false) }
 
     TopAppBar(
-        title = {},
+        title = { /* Puedes agregar un título si quieres */ },
         navigationIcon = {
             IconButton(onClick = { showMenu = true }) {
                 Image(
@@ -44,6 +55,7 @@ fun AppTopBar(
                 expanded = showMenu,
                 onDismissRequest = { showMenu = false }
             ) {
+                // MUTE - UNMUTE
                 DropdownMenuItem(
                     text = { Text(if (isMusicMuted) "Unmute Music" else "Mute Music") },
                     onClick = {
@@ -58,7 +70,44 @@ fun AppTopBar(
                         context.startService(intent)
                     }
                 )
+
+                // Submenú de idiomas
+                DropdownMenuItem(
+                    text = { Text("Idioma / Language") },
+                    onClick = {
+                        showLanguageMenu = true
+                        showMenu = false
+                    }
+                )
             }
+
+            // Menú de idiomas
+            DropdownMenu(
+                expanded = showLanguageMenu,
+                onDismissRequest = { showLanguageMenu = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("Español") },
+                    onClick = {
+                        guardarIdioma(context, "es")
+                        cambiarIdioma(context, "es")
+                        restartApp(context)
+                        showLanguageMenu = false
+                        Toast.makeText(context, "Idioma cambiado a Español", Toast.LENGTH_SHORT).show()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text("English") },
+                    onClick = {
+                        guardarIdioma(context, "en")
+                        cambiarIdioma(context, "en")
+                        restartApp(context)
+                        showLanguageMenu = false
+                        Toast.makeText(context, "Language changed to English", Toast.LENGTH_SHORT).show()
+                    }
+                )
+            }
+
         },
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = Color(0xFF9DC4E3),
@@ -66,6 +115,27 @@ fun AppTopBar(
         ),
         actions = {
             if (jugador != null) {
+
+                // Icono de ubicación
+                IconButton(onClick = { showLocationMenu = true }) {
+                    Icon(
+                        painter = painterResource(id = R.drawable.ic_ubicacion),
+                        contentDescription = "Ubicación",
+                        modifier = Modifier.size(40.dp)
+                    )
+                }
+
+                DropdownMenu(
+                    expanded = showLocationMenu,
+                    onDismissRequest = { showLocationMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(text = pais ?: "Ubicación desconocida") },
+                        onClick = {
+                            showLocationMenu = false
+                        }
+                    )
+                }
 
                 Text(
                     text = "${jugador.monedas}",
@@ -80,19 +150,34 @@ fun AppTopBar(
                     contentDescription = "Coins Icon",
                     modifier = Modifier.size(40.dp)
                 )
+
             }
         }
     )
 }
+
 @Preview(showBackground = true)
 @Composable
 fun PreviewAppTopBar() {
     var isMusicMuted by remember { mutableStateOf(false) }
 
+    val fakeJugador = Jugador(
+        nombre = "Jugador1",
+        monedas = 100,
+        partidas = 5,
+        victorias = 2,
+        palo = "Oros"
+    ).apply {
+        latitud = 40.4168  // Madrid, por ejemplo
+        longitud = -3.7038
+    }
+
     AppTopBar(
         context = LocalContext.current,
         isMusicMuted = isMusicMuted,
         onToggleMusic = { newState -> isMusicMuted = newState },
-        jugador = Jugador(nombre = "Jugador1", monedas = 100, palo = "Oros")
+        jugador = fakeJugador
     )
 }
+
+

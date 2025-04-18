@@ -71,4 +71,7 @@ dependencies {
     // Room con soporte para RxJava3
     implementation("androidx.room:room-rxjava3:2.6.1")
 
+    //Ubicación
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
 }
