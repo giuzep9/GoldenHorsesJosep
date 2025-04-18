@@ -1,9 +1,11 @@
 package com.eva.goldenhorses.uii
 
 import android.content.Intent
+import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -20,16 +22,43 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
+import android.app.Activity
+import android.content.ContentResolver
+import android.graphics.Canvas
+import android.net.Uri
+import androidx.activity.result.ActivityResultLauncher
+
 
 class VictoriaActivity : ComponentActivity() {
+
+    var currentCapturedBitmap: Bitmap? = null
+    lateinit var createImageLauncher: ActivityResultLauncher<String>
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
         val caballoPalo = intent.getStringExtra("jugador_palo") ?: "Oros"
 
+        createImageLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("image/png")) { uri: Uri? ->
+            uri?.let {
+                currentCapturedBitmap?.let { bitmap ->
+                    contentResolver.openOutputStream(uri)?.use { outputStream ->
+                        bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                    }
+                }
+            }
+        }
+
         setContent {
             VictoriaScreen(caballoPalo = caballoPalo, nombreJugador = nombreJugador)
         }
+    }
+    fun captureScreen(): Bitmap {
+        val view = this.window.decorView.rootView
+        val bitmap = Bitmap.createBitmap(view.width, view.height, Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(bitmap)
+        view.draw(canvas)
+        return bitmap
     }
 }
 
@@ -60,7 +89,7 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
         Box(
             modifier = Modifier
                 .fillMaxWidth(0.8f)
-                .heightIn(max = 425.dp)
+                .heightIn(max = 450.dp)
                 .background(Color.White.copy(alpha = 0.8f))
                 .align(Alignment.Center)
                 .padding(32.dp)
@@ -88,9 +117,10 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
                         .clickable {
-                            val intent = Intent(context, PlayerSelectionActivity::class.java).apply {
-                                putExtra("jugador_nombre", nombreJugador)
-                            }
+                            val intent =
+                                Intent(context, PlayerSelectionActivity::class.java).apply {
+                                    putExtra("jugador_nombre", nombreJugador)
+                                }
                             context.startActivity(intent)
                         }
                 )
@@ -108,10 +138,30 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
                             context.startActivity(intent)
                         }
                 )
+
             }
         }
+
+        Spacer(modifier = Modifier.height(300.dp))
+
+        Image(
+            painter = painterResource(id = R.drawable.boton_captura),
+            contentDescription = "Guardar captura",
+            modifier = Modifier
+                .align(Alignment.Center) // centrado en pantalla
+                .offset(y = 300.dp)
+                .fillMaxWidth(0.55f)
+                .clickable {
+                    val activity = context as? VictoriaActivity
+                    activity?.let {
+                        it.currentCapturedBitmap = it.captureScreen()
+                        it.createImageLauncher.launch("victoria_${System.currentTimeMillis()}.png")
+                    }
+                }
+        )
     }
 }
+
 
 @Preview(showBackground = true)
 @Composable
