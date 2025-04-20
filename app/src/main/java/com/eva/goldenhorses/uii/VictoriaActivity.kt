@@ -1,5 +1,6 @@
 package com.eva.goldenhorses.uii
 
+import android.annotation.SuppressLint
 import android.content.Intent
 import android.graphics.Bitmap
 import android.os.Bundle
@@ -17,20 +18,24 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
-import android.app.Activity
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.ContentResolver
+import android.content.Context
 import android.graphics.Canvas
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import android.content.pm.PackageManager
+import android.os.Build
 import android.provider.CalendarContract
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
+import androidx.core.app.NotificationCompat
 import java.util.TimeZone
 
 
@@ -88,6 +93,24 @@ class VictoriaActivity : ComponentActivity() {
                         android.Manifest.permission.WRITE_CALENDAR
                     ),
                     PERMISO_CALENDARIO
+                )
+            }
+        }
+        val tiempoResolucionMs = intent.getLongExtra("tiempo_resolucion", 0L)
+
+        if (tiempoResolucionMs > 0L) {
+            mostrarNotificacionVictoria(tiempoResolucionMs)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this,
+                    android.Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                ActivityCompat.requestPermissions(
+                    this,
+                    arrayOf(android.Manifest.permission.POST_NOTIFICATIONS),
+                    999
                 )
             }
         }
@@ -171,6 +194,17 @@ class VictoriaActivity : ComponentActivity() {
     ) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
+        if (requestCode == 999 &&
+            grantResults.isNotEmpty() &&
+            grantResults[0] == PackageManager.PERMISSION_GRANTED
+        ) {
+            val tiempoMs = intent.getLongExtra("tiempo_resolucion", 0L)
+            if (tiempoMs > 0L) {
+                mostrarNotificacionVictoria(tiempoMs)
+            }
+        }
+
+        // Ya tenías esto para el calendario
         if (requestCode == PERMISO_CALENDARIO && grantResults.isNotEmpty() &&
             grantResults[0] == PackageManager.PERMISSION_GRANTED
         ) {
@@ -191,6 +225,35 @@ class VictoriaActivity : ComponentActivity() {
         }
     }
 
+
+    @SuppressLint("ServiceCast")
+    private fun mostrarNotificacionVictoria(tiempoMs: Long) {
+        val tiempoSegundos = tiempoMs / 1000
+
+        val intent = Intent(this, DetalleVictoriaActivity::class.java).apply {
+            putExtra("tiempo_resolucion", tiempoSegundos)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            this, 0, intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val channelId = "victoria_channel"
+        val builder = NotificationCompat.Builder(this, channelId)
+            .setSmallIcon(R.drawable.notificacion)
+            .setContentTitle("\uD83C\uDFC6 ¡Victoria!")
+            .setContentText("Has ganado en $tiempoSegundos segundos")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+
+        val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(channelId, "Victoria", NotificationManager.IMPORTANCE_HIGH)
+            notificationManager.createNotificationChannel(channel)
+        }
+        notificationManager.notify(1001, builder.build())
+    }
 
     @Composable
     fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {

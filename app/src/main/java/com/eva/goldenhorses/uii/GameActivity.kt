@@ -1,14 +1,11 @@
 package com.eva.goldenhorses.uii
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.*
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -39,6 +36,9 @@ import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
 
 class GameActivity : ComponentActivity() {
+
+    public var tiempoInicioPartida : Long = 0L
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
@@ -59,6 +59,8 @@ class GameActivity : ComponentActivity() {
             view.setPadding(0, 0, 0, 0)
             insets
         }
+
+        tiempoInicioPartida = System.currentTimeMillis()
 
         setContent {
             val jugador by jugadorViewModel.jugador.collectAsState()
@@ -155,6 +157,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                     putExtra("jugador_palo", jugador.palo)
                     putExtra("caballo_ganador", ganador)
                     putExtra("jugador_nombre", jugador.nombre)
+                    putExtra("tiempo_resolucion", System.currentTimeMillis() - (context as GameActivity).tiempoInicioPartida)
                 }
             } else {
                 Intent(context, DerrotaActivity::class.java).apply {
