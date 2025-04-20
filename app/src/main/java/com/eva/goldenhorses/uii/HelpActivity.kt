@@ -34,6 +34,7 @@ class HelpActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val idioma = obtenerIdioma(this) // Obtiene el idioma guardado
 
+
         setContent {
             GoldenHorsesTheme {
                 HelpScreen(onBack = { finish() }, idioma = idioma)
@@ -54,6 +55,16 @@ fun HelpScreen(onBack: () -> Unit, idioma: String) {
         "es" -> "file:///android_asset/help_es.html"
         else -> "file:///android_asset/help_en.html"
     }
+    val tituloDrawable = when (idioma) {
+        "en" -> R.drawable.titulo_help
+        else -> R.drawable.titulo_ayuda
+    }
+
+    val volverDrawable = when (idioma) {
+        "en" -> R.drawable.return_boton
+        else -> R.drawable.volver
+    }
+
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -82,7 +93,7 @@ fun HelpScreen(onBack: () -> Unit, idioma: String) {
             ) {
                 // Título
                 Image(
-                    painter = painterResource(id = R.drawable.titulo_ayuda),
+                    painter = painterResource(id = tituloDrawable),
                     contentDescription = "Título Ayuda",
                     modifier = Modifier
                         .height(120.dp)
@@ -111,7 +122,7 @@ fun HelpScreen(onBack: () -> Unit, idioma: String) {
 
                 // Botón volver
                 Image(
-                    painter = painterResource(id = R.drawable.volver),
+                    painter = painterResource(id = volverDrawable),
                     contentDescription = "Volver",
                     modifier = Modifier
                         .size(160.dp, 64.dp)
