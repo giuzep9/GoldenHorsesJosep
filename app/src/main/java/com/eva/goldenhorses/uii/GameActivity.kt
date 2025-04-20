@@ -153,6 +153,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             val intent = if (jugador.palo == ganador) {
                 Intent(context, VictoriaActivity::class.java).apply {
                     putExtra("jugador_palo", jugador.palo)
+                    putExtra("caballo_ganador", ganador)
                     putExtra("jugador_nombre", jugador.nombre)
                 }
             } else {
@@ -163,7 +164,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             }
 
             context.startActivity(intent)
-            (context as? Activity)?.finish()
+            //(context as? Activity)?.finish()
         }
     }
 
