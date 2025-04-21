@@ -31,13 +31,13 @@ import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ContentResolver
-import android.content.Context
 import android.graphics.Canvas
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.CalendarContract
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -270,7 +270,7 @@ class VictoriaActivity : ComponentActivity() {
         }
         notificationManager.notify(1001, builder.build())
     }
-    }
+
     override fun attachBaseContext(newBase: Context) {
         val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
         super.attachBaseContext(context)
@@ -367,7 +367,8 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
                 modifier = Modifier
                     .align(Alignment.Center) // centrado en pantalla
                     .offset(y = 300.dp)
-                    .fillMaxWidth(0.55f)
+                    .fillMaxWidth(0.9f)
+                    .height(400.dp)
                     .clickable {
                         val activity = context as? VictoriaActivity
                         activity?.let {
@@ -381,9 +382,8 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
 }
 
 
-/*@Preview(showBackground = true)
+@Preview(showSystemUi = true, showBackground = true)
 @Composable
 fun PreviewVictoriaScreen() {
-    VictoriaScreen(caballoPalo = "Oros", nombreJugador = "JugadorDemo")
+    VictoriaScreen(caballoPalo = "Oros", nombreJugador = "Eva")
 }
-*/
