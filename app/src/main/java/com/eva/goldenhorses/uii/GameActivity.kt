@@ -21,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
@@ -207,8 +208,10 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
         // Imagen de fondo
         Image(
             painter = painterResource(id = R.drawable.pantalla_carrera),
-            contentDescription = "Fondo de la pista",
-            modifier = Modifier.fillMaxSize()
+            contentDescription = null,
+            contentScale = ContentScale.Crop, // o FillBounds, según el diseño
+            modifier = Modifier
+                .fillMaxSize()
         )
 
         Column(
@@ -221,22 +224,25 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 80.dp),
+                    .padding(top = 0.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 cartaSacada?.let {
                     Image(
                         painter = painterResource(id = obtenerImagenCarta(it)),
                         contentDescription = "Carta Jugada",
-                        modifier = Modifier.size(70.dp)
+                        modifier = Modifier.size(90.dp) .offset(y = (5).dp)
                     )
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Image(
                     painter = painterResource(id = R.drawable.mazo),
                     contentDescription = "Mazo",
-                    modifier = Modifier.size(60.dp)
+                    modifier = Modifier
+                        .size(100.dp)
+                        .offset(y = (0).dp)
                 )
+
             }
 
             Spacer(modifier = Modifier.height(65.dp))
@@ -252,7 +258,9 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                 ) {
                     // Cartas de retroceso
                     Column(
-                        modifier = Modifier.padding(end = 16.dp),
+                        modifier = Modifier
+                        .fillMaxHeight()
+                        .padding(end = 16.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         carrera.obtenerCartasRetroceso().forEachIndexed { index, carta ->
@@ -267,7 +275,8 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
 
                             Box(
                                 modifier = Modifier
-                                    .size(60.dp)
+                                    .size(55.dp)
+                                    .offset(y = (15).dp) //  Mueve la carta hacia arriba
                                     .graphicsLayer { rotationY = rotacionAnimada }  // Aplica la rotación en el eje Y
                                     .clickable {
                                         rotacion = if (girada) 0f else 180f  // Invierte la rotación al hacer clic
@@ -297,9 +306,11 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                     val cartasRetroceso = carrera.obtenerCartasRetroceso()
                     Column(
                         modifier = Modifier
+
+                            .offset(y = (-5).dp)
                             .fillMaxHeight()
                             .padding(top = 0.dp),
-                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                        verticalArrangement = Arrangement.spacedBy(0.dp)
                     ) {
                         Spacer(modifier = Modifier.height((cartasRetroceso.size).dp))
 
@@ -310,8 +321,8 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .wrapContentWidth(Alignment.Start)
-                                    .offset(x = 45.dp),
-                                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                                    .offset(x = 50.dp),
+                                horizontalArrangement = Arrangement.spacedBy(20.dp)
                             ) {
                                 posicionesCaballos.forEach { (palo, posicion) ->
                                     if (posicion == nivelInvertido + 1 && nivelInvertido < cartasRetroceso.size) {
@@ -323,7 +334,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                                             )
                                         }
                                     } else {
-                                        Spacer(modifier = Modifier.size(50.dp))
+                                        Spacer(modifier = Modifier.size(55.dp))
                                     }
                                 }
                             }
@@ -339,8 +350,8 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentWidth(Alignment.Start)
-                    .offset(x = 110.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .offset(x = 115.dp),
+                horizontalArrangement = Arrangement.spacedBy(15.dp)
             ) {
                 posicionesCaballos.keys.forEach { palo ->
                     Image(

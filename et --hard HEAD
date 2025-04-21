@@ -1,0 +1,26 @@
+[33m247019a[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mBea[m[33m, [m[1;31morigin/Bea[m[33m)[m  LO TENEMOS EQUIPO!!
+[33ma25e2b2[m[33m ([m[1;31morigin/Eva[m[33m, [m[1;32mEva[m[33m)[m Identifícate amorfo y persistencia casi arreglada menos algunos fallos en monedas
+[33m6614d13[m[33m ([m[1;31morigin/Josep[m[33m, [m[1;31morigin/HEAD[m[33m)[m Jugador ya se guarda
+[33m60d409e[m Cambio en la BBDD para que funcionen los caballos
+[33m615b420[m LogicaJuegoActualizada
+[33m7c21bab[m Los caballos ya funcionan
+[33m36e407a[m modificaciones victoria y derrota
+[33m2cd4c5a[m modificacion victoria
+[33m356aa9b[m BBDD derrota
+[33m7fd4364[m BBDD victoria
+[33m60175fd[m BBDD gameActivity
+[33m2071e34[m Trabajando con la BBDD
+[33m258bd8a[m[33m ([m[1;31morigin/BBDD[m[33m)[m BDD configurada
+[33mcb70b39[m BBDD
+[33m3eacf9a[m todas las imagenes actualizadas y botones
+[33mb0d12b6[m Pantalla de Login creada y modificado el método de HomeActivity para que aparezca el nombre del usuario en vez de (Jugador)
+[33mf88d3a9[m Actualizacion imagenes
+[33m2f638c9[m Merge remote-tracking branch 'origin' into Bea :wq
+[33m573df6d[m Actualizacion Josep
+[33m3885cf4[m Merge remote-tracking branch 'origin/Josep' into Eva
+[33mb1c96f0[m Commit para hacer el merge con Josep
+[33m0ed1e6b[m Actualización botones2
+[33m72fea51[m Actualización botones
+[33m4378288[m Funccionan las pantallas de Bea
+[33m234cf6f[m Pantallas Bea creadas
+[33m33c1be1[m[33m ([m[1;32mJosep[m[33m)[m Initial commit

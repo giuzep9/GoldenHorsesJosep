@@ -99,6 +99,15 @@ fun AppTopBar(
                         showMenu = false
                     }
                 )
+                // Ayuda
+                DropdownMenuItem(
+                    text = { Text("Ayuda / Help") },
+                    onClick = {
+                        showMenu = false
+                        val intent = Intent(context, HelpActivity::class.java)
+                        context.startActivity(intent)
+                    }
+                )
             }
 
             // Menú de idiomas

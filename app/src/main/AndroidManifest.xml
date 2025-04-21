@@ -50,6 +50,9 @@
         <!-- Registramos DerrotaActivity -->
         <activity android:name=".uii.DerrotaActivity" />
 
+        <!-- Registramos Ayuda -->
+        <activity android:name=".uii.HelpActivity" />
+
     </application>
 
 </manifest>
