@@ -2,6 +2,7 @@ package com.eva.goldenhorses.uii
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,6 +31,17 @@ class VictoriaActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
         val caballoPalo = intent.getStringExtra("jugador_palo") ?: "Oros"
+
+        val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val isMusicMuted = sharedPreferences.getBoolean("isMusicMuted", false)
+
+        if (!isMusicMuted) {
+            val mediaPlayer = MediaPlayer.create(this, R.raw.victoria)
+            mediaPlayer.setOnCompletionListener {
+                it.release()
+            }
+            mediaPlayer.start()
+        }
 
         setContent {
             VictoriaScreen(caballoPalo = caballoPalo, nombreJugador = nombreJugador)

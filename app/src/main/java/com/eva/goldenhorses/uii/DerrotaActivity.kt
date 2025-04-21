@@ -2,6 +2,7 @@ package com.eva.goldenhorses.uii
 
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -30,6 +31,17 @@ class DerrotaActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
         val ganador = intent.getStringExtra("caballo_ganador") ?: "Oros"
+
+        val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val isMusicMuted = sharedPreferences.getBoolean("isMusicMuted", false)
+
+        if (!isMusicMuted) {
+            val mediaPlayer = MediaPlayer.create(this, R.raw.derrota)
+            mediaPlayer.setOnCompletionListener {
+                it.release()
+            }
+            mediaPlayer.start()
+        }
 
         setContent {
             DerrotaScreen(caballoGanador = ganador, nombreJugador = nombreJugador)

@@ -34,6 +34,7 @@ fun AppTopBar(
     context: Context,
     isMusicMuted: Boolean,
     onToggleMusic: (Boolean) -> Unit,
+    onChangeMusicClick: () -> Unit = {},
     jugador: Jugador? = null,
     pais: String? = null
 ) {
@@ -70,7 +71,26 @@ fun AppTopBar(
                         context.startService(intent)
                     }
                 )
-
+                // CHANGE MUSIC
+                DropdownMenuItem(
+                    text = { Text("Change Music") },
+                    onClick = {
+                        showMenu = false
+                        onChangeMusicClick()
+                    }
+                )
+                // DEFAULT MUSIC
+                DropdownMenuItem(
+                    text = { Text("Restore Default Music") },
+                    onClick = {
+                        showMenu = false
+                        val intent = Intent(context, MusicService::class.java).apply {
+                            action = "CHANGE_MUSIC"
+                            putExtra("MUSIC_URI", "DEFAULT")
+                        }
+                        context.startService(intent)
+                    }
+                )
                 // Submenú de idiomas
                 DropdownMenuItem(
                     text = { Text("Idioma / Language") },

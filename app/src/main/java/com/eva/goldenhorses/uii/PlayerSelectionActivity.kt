@@ -9,6 +9,7 @@ import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -28,6 +29,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.data.AppDatabase
@@ -77,6 +79,27 @@ class PlayerSelectionActivity : ComponentActivity() {
         val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
         super.attachBaseContext(context)
     }
+    // Seleccionar canción
+    private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
+
+            // Reiniciar servicio con la nueva música
+            val musicIntent = Intent(this, MusicService::class.java).apply {
+                action = MusicService.ACTION_CHANGE_MUSIC
+                putExtra("MUSIC_URI", it.toString())
+            }
+            startService(musicIntent)
+        }
+    }
+    fun abrirSelectorMusica() {
+        selectMusicLauncher.launch(arrayOf("audio/*"))
+    }
 }
 
 @SuppressLint("CommitPrefEdits")
@@ -106,7 +129,10 @@ fun PlayerSelectionScreenWithTopBar(
                     isMusicMutedState = newState
                     sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                 },
-                jugador = jugador
+                jugador = jugador,
+                onChangeMusicClick = {
+                    (context as? PlayerSelectionActivity)?.abrirSelectorMusica()
+                }
             )
         }
     ) { paddingValues ->

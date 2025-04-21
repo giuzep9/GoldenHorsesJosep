@@ -55,6 +55,7 @@ import com.google.android.gms.location.LocationServices
 import android.location.Location
 import android.content.pm.PackageManager
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import androidx.compose.ui.res.stringResource
@@ -142,6 +143,27 @@ class HomeActivity : ComponentActivity() {
                 }
             }
     }
+    // Seleccionar canción
+    private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
+
+            // Reiniciar servicio con la nueva música
+            val musicIntent = Intent(this, MusicService::class.java).apply {
+                action = MusicService.ACTION_CHANGE_MUSIC
+                putExtra("MUSIC_URI", it.toString())
+            }
+            startService(musicIntent)
+        }
+    }
+    fun abrirSelectorMusica() {
+        selectMusicLauncher.launch(arrayOf("audio/*"))
+    }
 }
 
 @Composable
@@ -181,7 +203,11 @@ fun HomeScreenWithTopBar(
                         sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                     },
                     jugador = jugador, // Pasamos el jugador cargado
-                    pais = pais // Pasamos el país a la AppTopBar
+                    pais = pais, // Pasamos el país a la AppTopBar
+                    onChangeMusicClick = {
+                        (context as? HomeActivity)?.abrirSelectorMusica()
+                    }
+
                 )
             }
         ) { paddingValues ->

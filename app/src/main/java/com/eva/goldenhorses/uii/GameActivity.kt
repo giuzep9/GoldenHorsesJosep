@@ -3,11 +3,12 @@ package com.eva.goldenhorses.uii
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.animation.*
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -26,6 +27,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.data.AppDatabase
@@ -86,6 +88,27 @@ class GameActivity : ComponentActivity() {
         val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
         super.attachBaseContext(context)
     }
+    // Seleccionar canción
+    private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
+
+            // Reiniciar servicio con la nueva música
+            val musicIntent = Intent(this, MusicService::class.java).apply {
+                action = MusicService.ACTION_CHANGE_MUSIC
+                putExtra("MUSIC_URI", it.toString())
+            }
+            startService(musicIntent)
+        }
+    }
+    fun abrirSelectorMusica() {
+        selectMusicLauncher.launch(arrayOf("audio/*"))
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -107,7 +130,10 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context, viewModel: JugadorV
                     isMusicMutedState = newState
                     sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                 },
-                jugador = jugador
+                jugador = jugador,
+                onChangeMusicClick = {
+                    (context as? GameActivity)?.abrirSelectorMusica()
+                }
             )
         }
     ) { paddingValues ->
@@ -349,6 +375,19 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                             ) {
                                 cartaSacada = carrera.sacarCarta()
                                 cartaSacada?.let {
+
+                                    // Añadir sonido de carta girada si la música no está muteada
+                                    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                                    val isMusicMuted = sharedPreferences.getBoolean("isMusicMuted", false)
+
+                                    if (!isMusicMuted) {
+                                        val mediaPlayer = MediaPlayer.create(context, R.raw.cardsound)
+                                        mediaPlayer.start()
+                                        mediaPlayer.setOnCompletionListener {
+                                            it.release()
+                                        }
+                                    }
+
                                     // Mover el caballo según la carta extraída
                                     carrera.moverCaballo(it.palo)
                                     posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
@@ -363,6 +402,15 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                                     carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
                                         if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
                                             cartasGiradas.add(index)
+
+                                            // Añadir sonido de retroceso si la música no está muteada
+                                            if (!isMusicMuted) {
+                                                val mediaPlayer = MediaPlayer.create(context, R.raw.retrocesos)
+                                                mediaPlayer.start()
+                                                mediaPlayer.setOnCompletionListener {
+                                                    it.release()
+                                                }
+                                            }
                                             carrera.retrocederCaballo(carta.palo)
                                             posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
                                         }
