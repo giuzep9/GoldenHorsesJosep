@@ -225,7 +225,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
     ) {
         // Imagen de fondo
         Image(
-            painter = painterResource(id = R.drawable.pantalla_carrera),
+            painter = painterResource(id = R.drawable.pantalla_carrera2),
             contentDescription = "Fondo de la pista",
             modifier = Modifier.fillMaxSize()
         )
@@ -240,7 +240,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 80.dp),
+                    .padding(top = 20.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 cartaSacada?.let {
@@ -317,11 +317,9 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                     Column(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .padding(top = 0.dp),
+                            .padding(top = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Spacer(modifier = Modifier.height((cartasRetroceso.size).dp))
-
                         for (nivel in cartasRetroceso.indices) {
                             val nivelInvertido = cartasRetroceso.size - 1 - nivel
 
@@ -330,7 +328,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                                     .fillMaxWidth()
                                     .wrapContentWidth(Alignment.Start)
                                     .offset(x = 45.dp),
-                                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                                horizontalArrangement = Arrangement.spacedBy(18.dp)
                             ) {
                                 posicionesCaballos.forEach { (palo, posicion) ->
                                     if (posicion == nivelInvertido + 1 && nivelInvertido < cartasRetroceso.size) {
@@ -358,14 +356,15 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentWidth(Alignment.Start)
-                    .offset(x = 110.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .offset(x = 115.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 posicionesCaballos.keys.forEach { palo ->
                     Image(
                         painter = painterResource(id = obtenerImagenCarta(Carta(palo, 11))),
                         contentDescription = "Caballo $palo",
                         modifier = Modifier.size(60.dp)
+                            .offset(x = 4.dp),
                     )
                 }
             }
