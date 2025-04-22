@@ -38,6 +38,7 @@ import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.utils.aplicarIdioma
 import com.eva.goldenhorses.utils.obtenerIdioma
+import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
@@ -79,6 +80,7 @@ class PlayerSelectionActivity : ComponentActivity() {
         val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
         super.attachBaseContext(context)
     }
+
     // Seleccionar canción
     private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
@@ -112,8 +114,18 @@ fun PlayerSelectionScreenWithTopBar(
  {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(sharedPreferences.getBoolean("isMusicMuted", false)) }
-
      val jugador by viewModel.jugador.collectAsState()
+
+     // Calcular el país desde la latitud y longitud del jugador
+     val pais = remember(jugador) {
+         val currentJugador = jugador
+         val lat = currentJugador?.latitud
+         val lon = currentJugador?.longitud
+
+         if (lat != null && lon != null) {
+             obtenerPaisDesdeUbicacion(context, lat, lon)
+         } else null
+     }
 
      LaunchedEffect(nombreJugador) {
          viewModel.iniciarSesion(nombreJugador)
@@ -130,6 +142,7 @@ fun PlayerSelectionScreenWithTopBar(
                     sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                 },
                 jugador = jugador,
+                pais = pais,
                 onChangeMusicClick = {
                     (context as? PlayerSelectionActivity)?.abrirSelectorMusica()
                 }

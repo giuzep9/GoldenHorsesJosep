@@ -293,6 +293,7 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
     val fondoVictoria = if (idioma == "en") R.drawable.fondo_victory else R.drawable.fondo_victoria
     val botonVolverJugar = if (idioma == "en") R.drawable.boton_replay else R.drawable.volver_jugar
     val botonVolverInicio = if (idioma == "en") R.drawable.boton_home else R.drawable.volver_inicio
+    val botonCaptura = if (idioma == "en") R.drawable.boton_screenshot else R.drawable.boton_captura
 
     Box(
         modifier = Modifier.fillMaxSize()
@@ -360,27 +361,25 @@ fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
             }
 
             Spacer(modifier = Modifier.height(300.dp))
-
-            Image(
-                painter = painterResource(id = R.drawable.boton_captura),
-                contentDescription = "Guardar captura",
-                modifier = Modifier
-                    .align(Alignment.Center) // centrado en pantalla
-                    .offset(y = 300.dp)
-                    .fillMaxWidth(0.9f)
-                    .height(400.dp)
-                    .clickable {
-                        val activity = context as? VictoriaActivity
-                        activity?.let {
-                            it.currentCapturedBitmap = it.captureScreen()
-                            it.createImageLauncher.launch("victoria_${System.currentTimeMillis()}.png")
-                        }
-                    }
-            )
         }
+
+        Image(
+            painter = painterResource(id = botonCaptura),
+            contentDescription = "Guardar captura",
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(0.7f)
+                .offset(y = 310.dp)
+                .clickable {
+                    val activity = context as? VictoriaActivity
+                    activity?.let {
+                        it.currentCapturedBitmap = it.captureScreen()
+                        it.createImageLauncher.launch("victoria_${System.currentTimeMillis()}.png")
+                    }
+                }
+        )
     }
 }
-
 
 @Preview(showSystemUi = true, showBackground = true)
 @Composable

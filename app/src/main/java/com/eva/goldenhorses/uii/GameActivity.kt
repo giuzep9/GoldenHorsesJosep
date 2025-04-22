@@ -38,6 +38,7 @@ import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.utils.aplicarIdioma
 import com.eva.goldenhorses.utils.obtenerIdioma
+import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.core.Completable
@@ -122,6 +123,15 @@ class GameActivity : ComponentActivity() {
 fun GameScreenWithTopBar(jugador: Jugador, context: Context, viewModel: JugadorViewModel, onGameFinished: () -> Unit) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
+    val pais = remember(jugador) {
+        val currentJugador = jugador
+        val lat = currentJugador?.latitud
+        val lon = currentJugador?.longitud
+
+        if (lat != null && lon != null) {
+            obtenerPaisDesdeUbicacion(context, lat, lon)
+        } else null
+    }
 
     LaunchedEffect(Unit) {
         isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
@@ -137,6 +147,7 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context, viewModel: JugadorV
                     sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                 },
                 jugador = jugador,
+                pais = pais,
                 onChangeMusicClick = {
                     (context as? GameActivity)?.abrirSelectorMusica()
                 }
@@ -222,7 +233,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .padding(1.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Mazo y carta sacada
