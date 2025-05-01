@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "584379056162",
+    "project_id": "golden-horses-22f82",
+    "storage_bucket": "golden-horses-22f82.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:584379056162:android:ea6e63572e795e46c1ca7b",
+        "android_client_info": {
+          "package_name": "com.eva.goldenhorses"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "584379056162-3cdbnvv7uul7hldu6ng54nnselm3dv53.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eva.goldenhorses",
+            "certificate_hash": "3cc2471f8b75e21520f709c136ec3e368508cae1"
+          }
+        },
+        {
+          "client_id": "584379056162-pf16hg5stu2l3krklqj4vt5glfdrhp6s.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBA0g54UiCgUqYHM-2sm_mmKg_SPBhmAu4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "584379056162-pf16hg5stu2l3krklqj4vt5glfdrhp6s.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

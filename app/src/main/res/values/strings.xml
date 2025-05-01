@@ -10,4 +10,5 @@
     <string name="no_coins_toast">¡No te quedan monedas! Te regalamos 20 más para que puedas jugar!</string>
     <string name="winner">¡Has ganado!</string>
     <string name="looser">Ha ganado:</string>
+    <string name="default_web_client_id">584379056162-3cdbnvv7uul7hldu6ng54nnselm3dv53.apps.googleusercontent.com</string>
 </resources>
