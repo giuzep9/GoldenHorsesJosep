@@ -6,13 +6,13 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "jugadores")
 data class Jugador(
-    @PrimaryKey val nombre: String, // Clave primaria única (nombre del jugador)
-    var monedas: Int = 20,         // Monedas iniciales
-    var partidas: Int = 0,          // Número total de partidas
+    @PrimaryKey val nombre: String,  // Clave primaria única (nombre del jugador)
+    var monedas: Int = 20,           // Monedas iniciales
+    var partidas: Int = 0,           // Número total de partidas
     var victorias: Int = 0,          // Número de partidas ganadas
-    var palo: String = "Oros",
-    var latitud: Double? = null,
-    var longitud: Double? = null,
+    var palo: String = "Oros",       // Palo de la baraja
+    var latitud: Double? = null,     // Latitud de la ubicación del jugador
+    var longitud: Double? = null,    // Longitud de la ubicación del jugador
 
     @Ignore var apuesta: Apuesta? = null // Igual, solo aplica a lógica temporal
 ) {

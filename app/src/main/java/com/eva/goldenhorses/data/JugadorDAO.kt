@@ -20,4 +20,3 @@ interface JugadorDAO {
     @Query("UPDATE jugadores SET latitud = :lat, longitud = :lon WHERE nombre = :nombre")
     fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable
 }
-

@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "802275883472",
+    "project_id": "golden-horses-7406f",
+    "storage_bucket": "golden-horses-7406f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:802275883472:android:d0cfff311c35b2c5d0e1d5",
+        "android_client_info": {
+          "package_name": "com.eva.goldenhorses"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDOK2cO_Me0jnBnZEDBn5K_zLvRWlATaKM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
