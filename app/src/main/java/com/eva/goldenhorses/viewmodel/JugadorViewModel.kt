@@ -2,6 +2,7 @@ package com.eva.goldenhorses.viewmodel
 
 import android.content.Context
 import android.location.Geocoder
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
@@ -34,6 +35,7 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
                 val nuevo = Jugador(nombre, 100, 0, 0, "Oros")
                 insertarJugador(nuevo)
                 _jugador.value = nuevo
+                Log.d("JugadorViewModel", "Jugador creado en Firestore: $nuevo")
             })
         disposables.add(disposable)
     }

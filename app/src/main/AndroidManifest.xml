@@ -11,6 +11,7 @@
     <uses-permission android:name="android.permission.WRITE_CALENDAR"/>
     <uses-permission android:name="android.permission.READ_CALENDAR"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.INTERNET" />
     <application
         android:name=".App"
         android:allowBackup="true"
@@ -33,6 +34,13 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!-- Actividad para el login con Google, sin launcher -->
+        <activity
+            android:name=".uii.GoogleLoginActivity"
+            android:exported="true"
+            android:label="Google Login"
+            android:theme="@style/Theme.GoldenHorses" />
 
         <service android:name=".MusicService" android:exported="false" />
 

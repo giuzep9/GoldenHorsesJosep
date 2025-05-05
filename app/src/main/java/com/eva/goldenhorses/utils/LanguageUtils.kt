@@ -1,10 +1,12 @@
 package com.eva.goldenhorses.utils
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
 import android.os.Build
 import androidx.activity.ComponentActivity
+import com.eva.goldenhorses.uii.MainActivity
 import java.util.*
 
 fun cambiarIdioma(context: Context, idioma: String) {
@@ -42,10 +44,12 @@ fun aplicarIdioma(context: Context): Context {
 }
 
 fun restartApp(context: Context) {
-    val intent = context.packageManager.getLaunchIntentForPackage(context.packageName)
-    intent?.addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+    val intent = Intent(context, MainActivity::class.java).apply {
+        addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK)
+    }
     context.startActivity(intent)
-    if (context is ComponentActivity) {
+
+    if (context is Activity) {
         context.finish()
     }
 }

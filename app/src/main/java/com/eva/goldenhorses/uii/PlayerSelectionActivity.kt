@@ -5,7 +5,6 @@ import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -32,7 +31,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
-import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
@@ -43,8 +41,9 @@ import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.core.Completable
+import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.schedulers.Schedulers
-
+import kotlinx.coroutines.flow.MutableStateFlow
 
 class PlayerSelectionActivity : ComponentActivity() {
 
@@ -55,21 +54,17 @@ class PlayerSelectionActivity : ComponentActivity() {
 
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
             view.setPadding(0, 0, 0, 0)
             insets
         }
 
-        val database = AppDatabase.getDatabase(applicationContext)
-        val repository = JugadorRepository(database.jugadorDAO())
-        val factory = JugadorViewModelFactory(repository)
-        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+        // Obtenemos el ViewModel desde Application (ya configurado con Firestore)
+        jugadorViewModel = JugadorViewModel(JugadorRepository())
 
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: ""
         SessionManager.guardarJugador(this, nombreJugador)
-
 
         setContent {
             PlayerSelectionScreenWithTopBar(context = this, viewModel = jugadorViewModel, nombreJugador = nombreJugador)
@@ -77,21 +72,15 @@ class PlayerSelectionActivity : ComponentActivity() {
     }
 
     override fun attachBaseContext(newBase: Context) {
-        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        val context = aplicarIdioma(newBase)
         super.attachBaseContext(context)
     }
 
-    // Seleccionar canción
     private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
-            contentResolver.takePersistableUriPermission(
-                it,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
+            contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
             sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
-
-            // Reiniciar servicio con la nueva música
             val musicIntent = Intent(this, MusicService::class.java).apply {
                 action = MusicService.ACTION_CHANGE_MUSIC
                 putExtra("MUSIC_URI", it.toString())
@@ -110,27 +99,19 @@ fun PlayerSelectionScreenWithTopBar(
     context: Context,
     viewModel: JugadorViewModel,
     nombreJugador: String
-)
- {
+) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(sharedPreferences.getBoolean("isMusicMuted", false)) }
-     val jugador by viewModel.jugador.collectAsState()
+    val jugador by viewModel.jugador.collectAsState()
+    val pais = remember(jugador) {
+        val lat = jugador?.latitud
+        val lon = jugador?.longitud
+        if (lat != null && lon != null) obtenerPaisDesdeUbicacion(context, lat, lon) else null
+    }
 
-     // Calcular el país desde la latitud y longitud del jugador
-     val pais = remember(jugador) {
-         val currentJugador = jugador
-         val lat = currentJugador?.latitud
-         val lon = currentJugador?.longitud
-
-         if (lat != null && lon != null) {
-             obtenerPaisDesdeUbicacion(context, lat, lon)
-         } else null
-     }
-
-     LaunchedEffect(nombreJugador) {
-         viewModel.iniciarSesion(nombreJugador)
-     }
-
+    LaunchedEffect(nombreJugador) {
+        viewModel.iniciarSesion(nombreJugador)
+    }
 
     Scaffold(
         topBar = {
@@ -150,60 +131,41 @@ fun PlayerSelectionScreenWithTopBar(
         }
     ) { paddingValues ->
         PlayerSelectionScreen(
-            nombreJugador = nombreJugador,
             viewModel = viewModel,
+            nombreJugador = nombreJugador,
             onPlayerSelected = { nombre, palo ->
-
-                val disposable = viewModel.repository.obtenerJugador(nombre)
+                viewModel.repository.obtenerJugador(nombre)
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe({ jugadorExistente ->
-                        // Ya existe, entonces lo actualizamos
                         val jugadorActualizado = jugadorExistente
-                        jugadorActualizado.realizarApuesta(palo) //restar monedas de la apuesta
+                        jugadorActualizado.realizarApuesta(palo)
                         jugadorActualizado.palo = palo
-
                         viewModel.actualizarJugador(jugadorActualizado)
-
-                        val intent = Intent(context, GameActivity::class.java).apply {
+                        context.startActivity(Intent(context, GameActivity::class.java).apply {
                             putExtra("jugador_nombre", jugadorActualizado.nombre)
                             putExtra("jugador_palo", jugadorActualizado.palo)
                             putExtra("jugador_monedas", jugadorActualizado.monedas)
-                        }
-
-                        context.startActivity(intent)
+                        })
                         (context as? Activity)?.finish()
-
                     }, { error ->
                         error.printStackTrace()
                     }, {
-                        // No existía entonces lo creamos
-                        val nuevoJugador = Jugador(
-                            nombre = nombre,
-                            monedas = 100,
-                            partidas = 0,
-                            victorias = 0,
-                            palo = palo
-                        )
-                        nuevoJugador.realizarApuesta(palo) // restar monedas al apostar
+                        val nuevoJugador = Jugador(nombre, 100, 0, 0, palo)
+                        nuevoJugador.realizarApuesta(palo)
                         viewModel.insertarJugador(nuevoJugador)
-
-                        val intent = Intent(context, GameActivity::class.java).apply {
+                        context.startActivity(Intent(context, GameActivity::class.java).apply {
                             putExtra("jugador_nombre", nuevoJugador.nombre)
                             putExtra("jugador_palo", nuevoJugador.palo)
                             putExtra("jugador_monedas", nuevoJugador.monedas)
-                        }
-
-                        context.startActivity(intent)
+                        })
                         (context as? Activity)?.finish()
                     })
             },
             modifier = Modifier.padding(paddingValues)
         )
-
     }
 }
-
 
 @Composable
 fun PlayerSelectionScreen(
@@ -221,7 +183,6 @@ fun PlayerSelectionScreen(
     val textoSeleccionaCaballo = stringResource(R.string.select_horse_toast)
     val textoSinMonedas = stringResource(R.string.no_coins_toast)
 
-
     val palos = listOf("Oros", "Copas", "Espadas", "Bastos")
     val imagenesCaballos = mapOf(
         "Oros" to R.drawable.cab_oros,
@@ -231,7 +192,9 @@ fun PlayerSelectionScreen(
     )
 
     Box(
-        modifier = Modifier.fillMaxSize().background(Color.White)
+        modifier = modifier
+            .fillMaxSize()
+            .background(Color.White)
     ) {
         Image(
             painter = painterResource(id = R.drawable.fondo_home),
@@ -260,9 +223,7 @@ fun PlayerSelectionScreen(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         modifier = Modifier
                             .padding(8.dp)
-                            .clickable {
-                                paloSeleccionado = palo
-                            }
+                            .clickable { paloSeleccionado = palo }
                     ) {
                         Image(
                             painter = painterResource(id = imagenesCaballos[palo]!!),
@@ -312,24 +273,34 @@ fun PlayerSelectionScreen(
                                 .subscribeOn(Schedulers.io())
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribe({ jugadorExistente ->
-                                    if (jugadorExistente != null) {
-                                        if (jugadorExistente.monedas == 0) {
-                                            Toast.makeText(
-                                                context,
-                                                textoSinMonedas,
-                                                Toast.LENGTH_LONG
-                                            ).show()
-                                            val jugadorActualizado = jugadorExistente.copy(monedas = 20)
-                                            viewModel.actualizarJugador(jugadorActualizado)
-                                        } else {
-                                            Log.d("PlayerSelection", "Palo antes de pasar a GameActivity: $paloSeleccionado")
-                                            onPlayerSelected(nombreJugador, paloSeleccionado!!)
-                                        }
+                                    if (jugadorExistente.monedas <= 0) {
+                                        Toast.makeText(context, textoSinMonedas, Toast.LENGTH_SHORT).show()
+                                        jugadorExistente.monedas = 20
                                     }
+
+                                    jugadorExistente.realizarApuesta(paloSeleccionado!!)
+                                    jugadorExistente.palo = paloSeleccionado!!
+
+                                    viewModel.actualizarJugador(jugadorExistente)
+
+                                    onPlayerSelected(jugadorExistente.nombre, jugadorExistente.palo)
+
                                 }, { error ->
                                     error.printStackTrace()
-                                })
+                                }, {
+                                    // No existe el jugador, lo creamos
+                                    val nuevoJugador = Jugador(
+                                        nombre = nombreJugador,
+                                        monedas = 100,
+                                        partidas = 0,
+                                        victorias = 0,
+                                        palo = paloSeleccionado!!
+                                    )
+                                    nuevoJugador.realizarApuesta(paloSeleccionado!!)
+                                    viewModel.insertarJugador(nuevoJugador)
 
+                                    onPlayerSelected(nuevoJugador.nombre, nuevoJugador.palo)
+                                })
                         }
                     }
             )
@@ -350,16 +321,14 @@ fun PreviewPlayerSelectionScreenWithTopBar() {
         palo = "Copas"
     )
 
-    val fakeDAO = object : com.eva.goldenhorses.data.JugadorDAO {
-        override fun insertarJugador(jugador: Jugador) = io.reactivex.rxjava3.core.Completable.complete()
-        override fun obtenerJugador(nombre: String) = io.reactivex.rxjava3.core.Maybe.just(fakeJugador)
-        override fun actualizarJugador(jugador: Jugador) = io.reactivex.rxjava3.core.Completable.complete()
-        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
-            return Completable.complete()
-        }
+    // Repositorio falso solo para el Preview
+    val fakeRepository = object : JugadorRepository() {
+        override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
+        override fun insertarJugador(jugador: Jugador) = Completable.complete()
+        override fun actualizarJugador(jugador: Jugador) = Completable.complete()
+        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double) = Completable.complete()
     }
 
-    val fakeRepository = JugadorRepository(fakeDAO)
     val fakeViewModel = JugadorViewModel(fakeRepository)
 
     GoldenHorsesTheme {
@@ -370,3 +339,5 @@ fun PreviewPlayerSelectionScreenWithTopBar() {
         )
     }
 }
+
+

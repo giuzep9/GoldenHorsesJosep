@@ -10,4 +10,12 @@
     <string name="no_coins_toast">You have no coins left! Here are 20 more so you can keep playing!</string>
     <string name="winner">You won!</string>
     <string name="looser">The winner was:</string>
+    <string name="change_music">Change music</string>
+    <string name="restore_music">Restore Default Music</string>
+    <string name="idioma_languaje">Languaje</string>
+    <string name="ayuda_help">Help</string>
+    <string name="mute_music">Mute Music</string>
+    <string name="unmute_music">Unmute Music</string>
+    <string name="ubicacion_desconocida">Unknown Location</string>
+    <string name="default_web_client_id">802275883472-6ct1lf806gvd7725uolrg1nlj0f6ohl6.apps.googleusercontent.com</string>
 </resources>

@@ -10,4 +10,12 @@
     <string name="no_coins_toast">¡No te quedan monedas! Te regalamos 20 más para que puedas jugar!</string>
     <string name="winner">¡Has ganado!</string>
     <string name="looser">Ha ganado:</string>
+    <string name="change_music">Cambia de música</string>
+    <string name="restore_music">Vuelve a la música original</string>
+    <string name="idioma_languaje">Idioma</string>
+    <string name="ayuda_help">Ayuda</string>
+    <string name="mute_music">Apagar música</string>
+    <string name="unmute_music">Encender música</string>
+    <string name="ubicacion_desconocida">Ubicación desconocida</string>
+    <string name="default_web_client_id">802275883472-6ct1lf806gvd7725uolrg1nlj0f6ohl6.apps.googleusercontent.com</string>
 </resources>

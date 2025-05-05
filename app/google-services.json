@@ -12,7 +12,20 @@
           "package_name": "com.eva.goldenhorses"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "802275883472-keip8d40lrnd21o32gduhkrmj5s969gc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eva.goldenhorses",
+            "certificate_hash": "375abba913aba18f1c7cda81ae80a6f3097f8168"
+          }
+        },
+        {
+          "client_id": "802275883472-6ct1lf806gvd7725uolrg1nlj0f6ohl6.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyDOK2cO_Me0jnBnZEDBn5K_zLvRWlATaKM"
@@ -20,7 +33,12 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "802275883472-6ct1lf806gvd7725uolrg1nlj0f6ohl6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
         }
       }
     }

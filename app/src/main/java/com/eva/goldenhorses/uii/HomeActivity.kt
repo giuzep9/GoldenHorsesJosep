@@ -4,27 +4,35 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import com.eva.goldenhorses.MusicService
+import com.eva.goldenhorses.R
+import com.eva.goldenhorses.SessionManager
+import com.eva.goldenhorses.model.Jugador
+import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
+import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
+import com.eva.goldenhorses.viewmodel.JugadorViewModel
+import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import com.google.android.gms.location.FusedLocationProviderClient
+import com.google.android.gms.location.LocationServices
+import android.content.pm.PackageManager
+import android.location.Location
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,36 +40,12 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
-import com.eva.goldenhorses.MusicService
-import com.eva.goldenhorses.R
-import com.eva.goldenhorses.SessionManager
-import com.eva.goldenhorses.data.AppDatabase
-import com.eva.goldenhorses.data.JugadorDAO
-import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
-import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
-import com.eva.goldenhorses.viewmodel.JugadorViewModel
-import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
-import io.reactivex.rxjava3.core.Completable
-import io.reactivex.rxjava3.core.Maybe
-import com.google.android.gms.location.FusedLocationProviderClient
-import com.google.android.gms.location.LocationServices
-import android.location.Location
-import android.content.pm.PackageManager
-import android.widget.Toast
-import androidx.activity.result.contract.ActivityResultContracts
-import androidx.core.app.ActivityCompat
-import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
-import androidx.compose.ui.res.stringResource
-import com.eva.goldenhorses.utils.aplicarIdioma
-import com.eva.goldenhorses.utils.obtenerIdioma
-
 
 class HomeActivity : ComponentActivity() {
 
@@ -71,7 +55,6 @@ class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // Setup para barra de estado
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -80,17 +63,14 @@ class HomeActivity : ComponentActivity() {
             insets
         }
 
-        // Música
         startService(Intent(this, MusicService::class.java))
 
-        // ViewModel
-        val database = AppDatabase.getDatabase(applicationContext)
-        val repository = JugadorRepository(database.jugadorDAO())
+        val repository = JugadorRepository()
         val factory = JugadorViewModelFactory(repository)
-        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+        val jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
 
         val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
-
         if (!nombreJugadorIntent.isNullOrEmpty()) {
             SessionManager.guardarJugador(this, nombreJugadorIntent)
         }
@@ -99,7 +79,6 @@ class HomeActivity : ComponentActivity() {
         Log.d("HomeActivity", "Nombre obtenido de SessionManager: $nombreJugador")
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
         obtenerUbicacion(nombreJugador)
 
         setContent {
@@ -108,12 +87,11 @@ class HomeActivity : ComponentActivity() {
     }
 
     override fun attachBaseContext(newBase: Context) {
-        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        val context = aplicarIdioma(newBase)
         super.attachBaseContext(context)
     }
 
     private fun obtenerUbicacion(nombreJugador: String) {
-        // Solicitar permiso si no está concedido
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
@@ -125,25 +103,22 @@ class HomeActivity : ComponentActivity() {
             return
         }
 
-        // Obtener última ubicación conocida
         fusedLocationClient.lastLocation
-            .addOnSuccessListener { location ->
+            .addOnSuccessListener { location: Location? ->
                 location?.let {
                     val lat = it.latitude
                     val lon = it.longitude
                     Log.d("UBICACION", "Lat: $lat, Lon: $lon")
 
-                    // Guardar ubicación en base de datos
                     jugadorViewModel.actualizarUbicacion(nombreJugador, lat, lon)
                     jugadorViewModel.actualizarPaisDesdeUbicacion(this, lat, lon)
 
-                    // Mostramos país con Toast
                     val pais = obtenerPaisDesdeUbicacion(this, lat, lon)
                     Toast.makeText(this, "Estás en: $pais", Toast.LENGTH_LONG).show()
                 }
             }
     }
-    // Seleccionar canción
+
     private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
             contentResolver.takePersistableUriPermission(
@@ -153,7 +128,6 @@ class HomeActivity : ComponentActivity() {
             val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
             sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
 
-            // Reiniciar servicio con la nueva música
             val musicIntent = Intent(this, MusicService::class.java).apply {
                 action = MusicService.ACTION_CHANGE_MUSIC
                 putExtra("MUSIC_URI", it.toString())
@@ -161,6 +135,7 @@ class HomeActivity : ComponentActivity() {
             startService(musicIntent)
         }
     }
+
     fun abrirSelectorMusica() {
         selectMusicLauncher.launch(arrayOf("audio/*"))
     }
@@ -176,7 +151,6 @@ fun HomeScreenWithTopBar(
     var isMusicMutedState by remember { mutableStateOf(false) }
     val jugador by viewModel.jugador.collectAsState()
 
-    // Calcular el país desde la latitud y longitud del jugador
     val pais = remember(jugador) {
         val currentJugador = jugador
         val lat = currentJugador?.latitud
@@ -202,12 +176,11 @@ fun HomeScreenWithTopBar(
                         isMusicMutedState = newState
                         sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                     },
-                    jugador = jugador, // Pasamos el jugador cargado
-                    pais = pais, // Pasamos el país a la AppTopBar
+                    jugador = jugador,
+                    pais = pais,
                     onChangeMusicClick = {
                         (context as? HomeActivity)?.abrirSelectorMusica()
                     }
-
                 )
             }
         ) { paddingValues ->
@@ -222,10 +195,8 @@ fun HomeScreenWithTopBar(
                     .fillMaxSize()
                     .padding(paddingValues)
             )
-
         }
     }
-
 }
 
 @Composable
@@ -317,7 +288,7 @@ fun PreviewHomeScreenWithTopBar() {
         victorias = 4,
         palo = "Copas"
     ).apply {
-        latitud = 43.2630  // Bilbao
+        latitud = 43.2630
         longitud = -2.9350
     }
 
@@ -346,7 +317,3 @@ fun PreviewHomeScreenWithTopBar() {
         }
     }
 }
-
-
-
-

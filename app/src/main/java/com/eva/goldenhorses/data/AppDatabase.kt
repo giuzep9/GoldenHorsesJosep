@@ -1,31 +1,31 @@
-package com.eva.goldenhorses.data
+//package com.eva.goldenhorses.data
 
-import android.content.Context
-import androidx.room.Database
-import androidx.room.Room
-import androidx.room.RoomDatabase
-import com.eva.goldenhorses.model.Jugador
+//import android.content.Context
+//import androidx.room.Database
+//import androidx.room.Room
+//import androidx.room.RoomDatabase
+//import com.eva.goldenhorses.model.Jugador
 
-@Database(entities = [Jugador::class], version = 3, exportSchema = false) // Cambia la versión
-abstract class AppDatabase : RoomDatabase() {
+//@Database(entities = [Jugador::class], version = 3, exportSchema = false) // Cambia la versión
+//abstract class AppDatabase : RoomDatabase() {
 
-    abstract fun jugadorDAO(): JugadorDAO
+//abstract fun jugadorDAO(): JugadorDAO
 
-    companion object {
-        @Volatile private var INSTANCE: AppDatabase? = null
+//companion object {
+//@Volatile private var INSTANCE: AppDatabase? = null
 
-        fun getDatabase(context: Context): AppDatabase {
-            return INSTANCE ?: synchronized(this) {
-                val instance = Room.databaseBuilder(
-                    context.applicationContext,
-                    AppDatabase::class.java,
-                    "golden_horses_db"
-                )
-                    .fallbackToDestructiveMigration()
-                    .build()
-                INSTANCE = instance
-                instance
-            }
-        }
-    }
-}
+//fun getDatabase(context: Context): AppDatabase {
+//return INSTANCE ?: synchronized(this) {
+//              val instance = Room.databaseBuilder(
+//                  context.applicationContext,
+//                  AppDatabase::class.java,
+//                  "golden_horses_db"
+//              )
+//                  .fallbackToDestructiveMigration()
+//                  .build()
+//              INSTANCE = instance
+//              instance
+//          }
+//      }
+//  }
+//}

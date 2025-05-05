@@ -31,8 +31,6 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
-import com.eva.goldenhorses.data.AppDatabase
-import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.*
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
@@ -54,15 +52,12 @@ class GameActivity : ComponentActivity() {
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
         SessionManager.guardarJugador(this, nombreJugador)
 
-
-        val database = AppDatabase.getDatabase(applicationContext)
-        val repository = JugadorRepository(database.jugadorDAO())
+        val repository = JugadorRepository()
         val factory = JugadorViewModelFactory(repository)
         val jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
         WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
             view.setPadding(0, 0, 0, 0)
@@ -495,7 +490,6 @@ fun obtenerImagenCarta(carta: Carta): Int {
     return resId
 }
 
-
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PreviewGameScreenWithTopBar() {
@@ -507,16 +501,14 @@ fun PreviewGameScreenWithTopBar() {
         palo = "Oros"
     )
 
-    val fakeDAO = object : JugadorDAO {
-        override fun insertarJugador(jugador: Jugador) = Completable.complete()
+    // Repositorio falso solo para el Preview
+    val fakeRepository = object : JugadorRepository() {
         override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
+        override fun insertarJugador(jugador: Jugador) = Completable.complete()
         override fun actualizarJugador(jugador: Jugador) = Completable.complete()
-        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
-            return Completable.complete()
-        }
+        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double) = Completable.complete()
     }
 
-    val fakeRepository = JugadorRepository(fakeDAO)
     val fakeViewModel = JugadorViewModel(fakeRepository)
 
     GoldenHorsesTheme {

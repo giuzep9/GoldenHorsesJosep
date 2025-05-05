@@ -21,6 +21,7 @@ import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.model.Jugador
 import android.location.Geocoder
 import android.widget.Toast
+import androidx.compose.ui.res.stringResource
 import com.eva.goldenhorses.utils.cambiarIdioma
 import com.eva.goldenhorses.utils.guardarIdioma
 import java.util.*
@@ -58,7 +59,13 @@ fun AppTopBar(
             ) {
                 // MUTE - UNMUTE
                 DropdownMenuItem(
-                    text = { Text(if (isMusicMuted) "Unmute Music" else "Mute Music") },
+                    text = {
+                        Text(
+                            text = stringResource(
+                                if (isMusicMuted) R.string.unmute_music else R.string.mute_music
+                            )
+                        )
+                    },
                     onClick = {
                         val newState = !isMusicMuted
                         onToggleMusic(newState)
@@ -73,7 +80,7 @@ fun AppTopBar(
                 )
                 // CHANGE MUSIC
                 DropdownMenuItem(
-                    text = { Text("Change Music") },
+                    text = { Text(stringResource(id = R.string.change_music)) },
                     onClick = {
                         showMenu = false
                         onChangeMusicClick()
@@ -81,7 +88,7 @@ fun AppTopBar(
                 )
                 // DEFAULT MUSIC
                 DropdownMenuItem(
-                    text = { Text("Restore Default Music") },
+                    text = { Text(stringResource(id = R.string.restore_music)) },
                     onClick = {
                         showMenu = false
                         val intent = Intent(context, MusicService::class.java).apply {
@@ -93,7 +100,7 @@ fun AppTopBar(
                 )
                 // Submenú de idiomas
                 DropdownMenuItem(
-                    text = { Text("Idioma / Language") },
+                    text = { Text(stringResource(id = R.string.idioma_languaje)) },
                     onClick = {
                         showLanguageMenu = true
                         showMenu = false
@@ -101,7 +108,7 @@ fun AppTopBar(
                 )
                 // Ayuda
                 DropdownMenuItem(
-                    text = { Text("Ayuda / Help") },
+                    text = { Text(stringResource(id = R.string.ayuda_help)) },
                     onClick = {
                         showMenu = false
                         val intent = Intent(context, HelpActivity::class.java)
@@ -159,7 +166,11 @@ fun AppTopBar(
                     onDismissRequest = { showLocationMenu = false }
                 ) {
                     DropdownMenuItem(
-                        text = { Text(text = pais ?: "Ubicación desconocida") },
+                        text = {
+                            Text(
+                                text = pais ?: stringResource(id = R.string.ubicacion_desconocida)
+                            )
+                        },
                         onClick = {
                             showLocationMenu = false
                         }
@@ -197,15 +208,19 @@ fun PreviewAppTopBar() {
         victorias = 2,
         palo = "Oros"
     ).apply {
-        latitud = 40.4168  // Madrid, por ejemplo
+        latitud = 40.4168
         longitud = -3.7038
     }
 
+    // Contexto vacío para preview (no funcional, pero suficiente)
+    val fakeContext = androidx.compose.ui.platform.LocalContext.current
+
     AppTopBar(
-        context = LocalContext.current,
+        context = fakeContext,
         isMusicMuted = isMusicMuted,
-        onToggleMusic = { newState -> isMusicMuted = newState },
-        jugador = fakeJugador
+        onToggleMusic = { isMusicMuted = it },
+        jugador = fakeJugador,
+        pais = "España"
     )
 }
 
