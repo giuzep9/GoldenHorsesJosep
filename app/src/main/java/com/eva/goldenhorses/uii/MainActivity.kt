@@ -78,7 +78,10 @@ class MainActivity : ComponentActivity() {
                             Toast.makeText(this, "¡Bienvenido ${user?.displayName}!", Toast.LENGTH_SHORT).show()
 
                             // Después de la autenticación exitosa, navega a la siguiente pantalla (HomeActivity)
-                            val intent = Intent(this, HomeActivity::class.java)  // Cambia HomeActivity por la actividad de inicio
+                            val intent = Intent(this, HomeActivity::class.java).apply {
+                                // Pasa el nombre de usuario como extra
+                                putExtra("jugador_nombre", user?.displayName)
+                            }
                             startActivity(intent)
                             finish() // Finaliza esta actividad para no regresar a ella
                         } else {
@@ -92,6 +95,7 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
+
 }
 
 @Composable

@@ -89,6 +89,7 @@ class HomeActivity : ComponentActivity() {
         val factory = JugadorViewModelFactory(repository)
         jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
+        // Obtener el nombre del jugador desde el Intent
         val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
 
         if (!nombreJugadorIntent.isNullOrEmpty()) {
