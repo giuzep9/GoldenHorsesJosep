@@ -21,6 +21,7 @@ import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.auth.api.signin.GoogleSignInOptions
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
 
 class MainActivity : ComponentActivity() {
 
@@ -42,7 +43,10 @@ class MainActivity : ComponentActivity() {
 
         val googleSignInClient = GoogleSignIn.getClient(this, gso)
         val firebaseAuth = FirebaseAuth.getInstance()
-        googleAuthRepository = GoogleAuthRepository(firebaseAuth, googleSignInClient)
+        val firestore = FirebaseFirestore.getInstance() // Inicializamos Firestore aquí
+
+        // Ahora pasamos firestore al constructor de GoogleAuthRepository
+        googleAuthRepository = GoogleAuthRepository(firebaseAuth, googleSignInClient, firestore)
     }
 
     private fun navigateToLogin() {
@@ -59,7 +63,16 @@ class MainActivity : ComponentActivity() {
             val task = GoogleSignIn.getSignedInAccountFromIntent(data)
             val account = task.result
             if (account != null && account.idToken != null) {
-                googleAuthRepository.firebaseAuthWithGoogle(account.idToken!!) { success, userName ->
+                // Aquí debes pasar los valores de monedas, partidas, victorias, palo, latitud y longitud
+                val monedas = 100  // Valor predeterminado o valor que desees
+                val partidas = 0   // Valor predeterminado o valor que desees
+                val victorias = 0  // Valor predeterminado o valor que desees
+                val palo = "Oros"  // Valor predeterminado o valor que desees
+                val latitud: Double? = null // Usar el valor de latitud que tengas
+                val longitud: Double? = null // Usar el valor de longitud que tengas
+
+                // Ahora pasas todos los parámetros al método
+                googleAuthRepository.firebaseAuthWithGoogle(account.idToken!!, monedas, partidas, victorias, palo, latitud, longitud) { success, userName ->
                     if (success) {
                         Toast.makeText(this, "¡Bienvenido $userName!", Toast.LENGTH_SHORT).show()
                         val intent = Intent(this, HomeActivity::class.java).apply {
@@ -71,12 +84,13 @@ class MainActivity : ComponentActivity() {
                         Toast.makeText(this, "Error en el inicio de sesión", Toast.LENGTH_SHORT).show()
                     }
                 }
+            }
             } else {
                 Toast.makeText(this, "No se seleccionó ninguna cuenta", Toast.LENGTH_SHORT).show()
             }
         }
     }
-}
+
 
 @Composable
 fun WelcomeScreen(onPlayClick: () -> Unit) {

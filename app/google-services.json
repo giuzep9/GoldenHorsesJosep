@@ -14,11 +14,11 @@
       },
       "oauth_client": [
         {
-          "client_id": "584379056162-3cdbnvv7uul7hldu6ng54nnselm3dv53.apps.googleusercontent.com",
+          "client_id": "584379056162-gh5kgk86jctpgv4s6vu1rduo933rrpqs.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.eva.goldenhorses",
-            "certificate_hash": "3cc2471f8b75e21520f709c136ec3e368508cae1"
+            "certificate_hash": "cfd821afb097e096864c50d9889fbed8f8476b6e"
           }
         },
         {
