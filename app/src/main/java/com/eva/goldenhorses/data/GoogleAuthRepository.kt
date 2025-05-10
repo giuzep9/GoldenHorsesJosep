@@ -39,19 +39,27 @@ class GoogleAuthRepository(
             }
     }
 
-    private fun guardarJugadorEnFirestore(nombre: String, monedas: Int, partidas: Int, victorias: Int, palo: String, latitud: Double?, longitud: Double?) {
+    private fun guardarJugadorEnFirestore(
+        nombre: String,
+        monedas: Int,
+        partidas: Int,
+        victorias: Int,
+        palo: String,
+        latitud: Double?,
+        longitud: Double?
+    ) {
         val jugadorRef = db.collection("jugadores").document(nombre)
 
         jugadorRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
-                // Si el jugador existe, actualiza los datos (por ejemplo, monedas, partidas, etc.)
+                // Actualiza solo los campos comunes
                 val jugadorActualizado = mapOf(
-                    "monedas" to monedas,         // Actualiza el valor de monedas
-                    "partidas" to partidas,       // Actualiza el valor de partidas
-                    "victorias" to victorias,     // Actualiza el valor de victorias
-                    "palo" to palo,               // Actualiza el palo
-                    "latitud" to latitud,         // Actualiza la latitud
-                    "longitud" to longitud        // Actualiza la longitud
+                    "monedas" to monedas,
+                    "partidas" to partidas,
+                    "victorias" to victorias,
+                    "palo" to palo,
+                    "latitud" to latitud,
+                    "longitud" to longitud
                 )
                 jugadorRef.update(jugadorActualizado).addOnSuccessListener {
                     println("Datos del jugador actualizados en Firestore")
@@ -59,15 +67,15 @@ class GoogleAuthRepository(
                     println("Error al actualizar datos del jugador: ${it.message}")
                 }
             } else {
-                // Si no existe, crea un nuevo jugador
+                // Crea jugador nuevo sin victoriasPorDia y premioReclamado
                 val nuevoJugador = mapOf(
                     "nombre" to nombre,
-                    "monedas" to monedas,         // Valor inicial de monedas
-                    "partidas" to partidas,       // Valor inicial de partidas
-                    "victorias" to victorias,     // Valor inicial de victorias
-                    "palo" to palo,               // Valor inicial de palo
-                    "latitud" to latitud,         // Valor inicial de latitud
-                    "longitud" to longitud        // Valor inicial de longitud
+                    "monedas" to monedas,
+                    "partidas" to partidas,
+                    "victorias" to victorias,
+                    "palo" to palo,
+                    "latitud" to latitud,
+                    "longitud" to longitud
                 )
                 jugadorRef.set(nuevoJugador).addOnSuccessListener {
                     println("Jugador guardado exitosamente en Firestore")
@@ -77,6 +85,7 @@ class GoogleAuthRepository(
             }
         }
     }
+
 
 
 }

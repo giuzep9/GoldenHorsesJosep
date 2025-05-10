@@ -56,6 +56,8 @@
 
         <!-- Registramos Ayuda -->
         <activity android:name=".uii.HelpActivity" />
+        <!-- RankingActivity -->
+        <activity android:name=".ui.RankingActivity"></activity>
 
     </application>
 

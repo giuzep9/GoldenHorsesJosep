@@ -41,8 +41,16 @@ import com.eva.goldenhorses.utils.obtenerIdioma
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import com.google.firebase.firestore.FirebaseFirestore
+
+
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
+
+
 class GameActivity : ComponentActivity() {
 
     public var tiempoInicioPartida : Long = 0L
@@ -90,54 +98,6 @@ class GameActivity : ComponentActivity() {
         }
     }
 
-
-/*class GameActivity : ComponentActivity() {
-
-    public var tiempoInicioPartida : Long = 0L
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
-        SessionManager.guardarJugador(this, nombreJugador)
-
-
-        val database = AppDatabase.getDatabase(applicationContext)
-        val repository = JugadorRepository(database.jugadorDAO())
-        val factory = JugadorViewModelFactory(repository)
-        val jugadorViewModel = factory.create(JugadorViewModel::class.java)
-
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, 0, 0, 0)
-            insets
-        }
-
-        tiempoInicioPartida = System.currentTimeMillis()
-
-        setContent {
-            val jugador by jugadorViewModel.jugador.collectAsState()
-
-            LaunchedEffect(nombreJugador) {
-                jugadorViewModel.iniciarSesion(nombreJugador)
-
-                val paloDesdeIntent = intent.getStringExtra("jugador_palo")
-                if (paloDesdeIntent != null) {
-                    jugador?.realizarApuesta(paloDesdeIntent)
-                    jugador?.let { jugadorViewModel.actualizarJugador(it) }
-                }
-            }
-
-            jugador?.let { jugador ->
-                GameScreenWithTopBar(jugador = jugador, context = this, viewModel = jugadorViewModel ) {
-                    jugadorViewModel.actualizarJugador(jugador)
-                }
-            }
-        }
-    }*/
     override fun attachBaseContext(newBase: Context) {
         val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
         super.attachBaseContext(context)
@@ -232,6 +192,40 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
         "Espadas" to R.drawable.cab_espadas
     )
 
+   /* LaunchedEffect(carreraFinalizada) {
+        if (carreraFinalizada) {
+            val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
+            Log.d("DEBUG", "Jugador: $jugador, Palo: ${jugador.palo}, Ganador: $ganador")
+            jugador.actualizarMonedas(ganador)
+            viewModel.actualizarJugador(jugador)
+
+            // Actualizamos estadísticas del jugador
+            jugador.partidas += 1
+            if (ganador == jugador.palo) {
+                jugador.victorias += 1
+            }
+
+            onGameFinished() // Guardar en la base de datos
+
+            val intent = if (jugador.palo == ganador) {
+                Intent(context, VictoriaActivity::class.java).apply {
+                    putExtra("jugador_palo", jugador.palo)
+                    putExtra("caballo_ganador", ganador)
+                    putExtra("jugador_nombre", jugador.nombre)
+                    putExtra("tiempo_resolucion", System.currentTimeMillis() - (context as GameActivity).tiempoInicioPartida)
+                }
+            } else {
+                Intent(context, DerrotaActivity::class.java).apply {
+                    putExtra("caballo_ganador", ganador)
+                    putExtra("jugador_nombre", jugador.nombre)
+                }
+            }
+
+            context.startActivity(intent)
+            //(context as? Activity)?.finish()
+        }
+    }
+*/
     LaunchedEffect(carreraFinalizada) {
         if (carreraFinalizada) {
             val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
@@ -243,6 +237,20 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             jugador.partidas += 1
             if (ganador == jugador.palo) {
                 jugador.victorias += 1
+
+                // 👉 Añade aquí la lógica para guardar la victoria del día en Firebase
+                val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val jugadorId = jugador.nombre
+                val db = FirebaseFirestore.getInstance()
+                val docRef = db.collection("jugadores").document(jugadorId)
+
+                docRef.collection("victoriasPorDia").document(fechaHoy)
+                    .get().addOnSuccessListener { document ->
+                        val victoriasActuales = document.getLong("victorias") ?: 0
+                        val nuevasVictorias = victoriasActuales + 1
+                        docRef.collection("victoriasPorDia").document(fechaHoy)
+                            .set(mapOf("victorias" to nuevasVictorias))
+                    }
             }
 
             onGameFinished() // Guardar en la base de datos

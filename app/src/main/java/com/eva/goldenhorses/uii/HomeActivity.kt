@@ -60,6 +60,7 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import androidx.compose.ui.res.stringResource
+import com.eva.goldenhorses.ui.RankingActivity
 import com.eva.goldenhorses.utils.aplicarIdioma
 import com.eva.goldenhorses.utils.obtenerIdioma
 import java.util.Locale
@@ -176,112 +177,6 @@ class HomeActivity : ComponentActivity() {
     }
 }
 
-/*class HomeActivity : ComponentActivity() {
-
-    private lateinit var jugadorViewModel: JugadorViewModel
-    private lateinit var fusedLocationClient: FusedLocationProviderClient
-
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-
-        // Setup para barra de estado
-        val controller = WindowInsetsControllerCompat(window, window.decorView)
-        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        WindowCompat.setDecorFitsSystemWindows(window, false)
-        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
-            view.setPadding(0, 0, 0, 0)
-            insets
-        }
-
-        // Música
-        startService(Intent(this, MusicService::class.java))
-
-        // ViewModel
-        val database = AppDatabase.getDatabase(applicationContext)
-        val repository = JugadorRepository(database.jugadorDAO())
-        val factory = JugadorViewModelFactory(repository)
-        jugadorViewModel = factory.create(JugadorViewModel::class.java)
-
-        // Obtener el nombre del jugador desde el Intent
-        val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
-
-        if (!nombreJugadorIntent.isNullOrEmpty()) {
-            SessionManager.guardarJugador(this, nombreJugadorIntent)
-        }
-
-        val nombreJugador = SessionManager.obtenerJugador(this)
-        Log.d("HomeActivity", "Nombre obtenido de SessionManager: $nombreJugador")
-
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-
-        obtenerUbicacion(nombreJugador)
-
-        setContent {
-            HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)
-        }
-    }
-
-    override fun attachBaseContext(newBase: Context) {
-        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
-        super.attachBaseContext(context)
-    }
-
-    private fun obtenerUbicacion(nombreJugador: String) {
-        // Solicitar permiso si no está concedido
-        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
-            != PackageManager.PERMISSION_GRANTED
-        ) {
-            ActivityCompat.requestPermissions(
-                this,
-                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
-                1001
-            )
-            return
-        }
-
-        // Obtener última ubicación conocida
-        fusedLocationClient.lastLocation
-            .addOnSuccessListener { location ->
-                location?.let {
-                    val lat = it.latitude
-                    val lon = it.longitude
-                    Log.d("UBICACION", "Lat: $lat, Lon: $lon")
-
-                    // Guardar ubicación en base de datos
-                    jugadorViewModel.actualizarUbicacion(nombreJugador, lat, lon)
-                    jugadorViewModel.actualizarPaisDesdeUbicacion(this, lat, lon)
-
-                    // Mostramos país con Toast
-                    val pais = obtenerPaisDesdeUbicacion(this, lat, lon)
-                    Toast.makeText(this, "Estás en: $pais", Toast.LENGTH_LONG).show()
-                }
-            }
-    }
-    // Seleccionar canción
-    private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        uri?.let {
-            contentResolver.takePersistableUriPermission(
-                it,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-            sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
-
-            // Reiniciar servicio con la nueva música
-            val musicIntent = Intent(this, MusicService::class.java).apply {
-                action = MusicService.ACTION_CHANGE_MUSIC
-                putExtra("MUSIC_URI", it.toString())
-            }
-            startService(musicIntent)
-        }
-    }
-    fun abrirSelectorMusica() {
-        selectMusicLauncher.launch(arrayOf("audio/*"))
-    }
-}
-*/
-
- */
 @Composable
 fun HomeScreenWithTopBar(
     context: Context,
@@ -404,6 +299,7 @@ fun HomeScreen(
                 modifier = Modifier.padding(bottom = 32.dp)
             )
 
+
             Column(
                 modifier = Modifier
                     .fillMaxSize()
@@ -411,6 +307,16 @@ fun HomeScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Bottom
             ) {
+                Image(
+                    painter = painterResource(id = R.drawable.ic_premio), // Asegúrate de tener este icono en res/drawable
+                    contentDescription = "Icono Ranking",
+                    modifier = Modifier
+                        .size(120.dp)
+                        .clickable {
+                            context.startActivity(Intent(context, RankingActivity::class.java))
+                        }
+                        .padding(bottom = 16.dp)
+                )
                 Image(
                     painter = painterResource(id = botonJugarImage),
                     contentDescription = "Botón JUGAR / START",
