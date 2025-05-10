@@ -1,4 +1,4 @@
-package com.eva.goldenhorses.data
+/*package com.eva.goldenhorses.data
 
 import androidx.room.*
 import com.eva.goldenhorses.model.Jugador
@@ -21,3 +21,4 @@ interface JugadorDAO {
     fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable
 }
 
+*/

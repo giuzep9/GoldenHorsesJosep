@@ -1,4 +1,4 @@
-package com.eva.goldenhorses.data
+/*package com.eva.goldenhorses.data
 
 import android.content.Context
 import androidx.room.Database
@@ -28,4 +28,4 @@ abstract class AppDatabase : RoomDatabase() {
             }
         }
     }
-}
+}*/

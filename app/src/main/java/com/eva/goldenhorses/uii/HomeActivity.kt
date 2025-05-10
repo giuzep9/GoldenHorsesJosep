@@ -41,8 +41,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
-import com.eva.goldenhorses.data.AppDatabase
-import com.eva.goldenhorses.data.JugadorDAO
+//import com.eva.goldenhorses.data.AppDatabase
+//import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
@@ -54,6 +54,7 @@ import com.google.android.gms.location.FusedLocationProviderClient
 import com.google.android.gms.location.LocationServices
 import android.location.Location
 import android.content.pm.PackageManager
+import android.location.Geocoder
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.app.ActivityCompat
@@ -61,9 +62,121 @@ import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import androidx.compose.ui.res.stringResource
 import com.eva.goldenhorses.utils.aplicarIdioma
 import com.eva.goldenhorses.utils.obtenerIdioma
-
+import java.util.Locale
 
 class HomeActivity : ComponentActivity() {
+
+    private lateinit var jugadorViewModel: JugadorViewModel
+    private lateinit var fusedLocationClient: FusedLocationProviderClient
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Setup para barra de estado
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+            view.setPadding(0, 0, 0, 0)
+            insets
+        }
+
+        // Música
+        startService(Intent(this, MusicService::class.java))
+
+        // ViewModel y Repository para Firebase
+        val repository = JugadorRepository() // Usamos el repositorio real que conecta con Firebase
+        val factory = JugadorViewModelFactory(repository)
+        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
+        // Obtener el nombre del jugador desde el Intent
+        val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
+
+        if (!nombreJugadorIntent.isNullOrEmpty()) {
+            SessionManager.guardarJugador(this, nombreJugadorIntent)
+        }
+
+        val nombreJugador = SessionManager.obtenerJugador(this)
+        Log.d("HomeActivity", "Nombre obtenido de SessionManager: $nombreJugador")
+
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+
+        obtenerUbicacion(nombreJugador)
+
+        setContent {
+            HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)
+        }
+    }
+
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // Usa tu función LanguageUtils
+        super.attachBaseContext(context)
+    }
+
+    private fun obtenerUbicacion(nombreJugador: String) {
+        // Solicitar permiso si no está concedido
+        if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
+            != PackageManager.PERMISSION_GRANTED
+        ) {
+            ActivityCompat.requestPermissions(
+                this,
+                arrayOf(android.Manifest.permission.ACCESS_FINE_LOCATION),
+                1001
+            )
+            return
+        }
+
+        // Obtener última ubicación conocida
+        fusedLocationClient.lastLocation
+            .addOnSuccessListener { location ->
+                location?.let {
+                    val lat = it.latitude
+                    val lon = it.longitude
+                    Log.d("UBICACION", "Lat: $lat, Lon: $lon")
+
+                    // Guardar ubicación en Firebase
+                    jugadorViewModel.actualizarUbicacion(nombreJugador, lat, lon)
+                    jugadorViewModel.actualizarPaisDesdeUbicacion(this, lat, lon)
+
+                    // Mostramos país con Toast
+                    val pais = obtenerPaisDesdeUbicacion(this, lat, lon)
+                    Toast.makeText(this, "Estás en: $pais", Toast.LENGTH_LONG).show()
+                }
+            }
+    }
+
+    // Función para obtener el país a partir de la latitud y longitud
+    private fun obtenerPaisDesdeUbicacion(context: Context, lat: Double, lon: Double): String {
+        val geocoder = Geocoder(context, Locale.getDefault())
+        val addresses = geocoder.getFromLocation(lat, lon, 1)
+        return addresses?.firstOrNull()?.countryName ?: "Desconocido"
+    }
+
+    // Seleccionar canción
+    private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
+
+            // Reiniciar servicio con la nueva música
+            val musicIntent = Intent(this, MusicService::class.java).apply {
+                action = MusicService.ACTION_CHANGE_MUSIC
+                putExtra("MUSIC_URI", it.toString())
+            }
+            startService(musicIntent)
+        }
+    }
+
+    fun abrirSelectorMusica() {
+        selectMusicLauncher.launch(arrayOf("audio/*"))
+    }
+}
+
+/*class HomeActivity : ComponentActivity() {
 
     private lateinit var jugadorViewModel: JugadorViewModel
     private lateinit var fusedLocationClient: FusedLocationProviderClient
@@ -166,7 +279,9 @@ class HomeActivity : ComponentActivity() {
         selectMusicLauncher.launch(arrayOf("audio/*"))
     }
 }
+*/
 
+ */
 @Composable
 fun HomeScreenWithTopBar(
     context: Context,

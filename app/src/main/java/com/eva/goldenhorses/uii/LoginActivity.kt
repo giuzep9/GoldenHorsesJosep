@@ -26,13 +26,13 @@ import com.eva.goldenhorses.R
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
-import com.eva.goldenhorses.data.AppDatabase
+//import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.repository.JugadorRepository
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.ui.res.stringResource
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.SessionManager
-import com.eva.goldenhorses.data.JugadorDAO
+//import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.utils.aplicarIdioma
 import com.eva.goldenhorses.utils.guardarIdioma
@@ -43,6 +43,42 @@ import io.reactivex.rxjava3.core.Maybe
 
 
 class LoginActivity : ComponentActivity() {
+
+    private lateinit var jugadorViewModel: JugadorViewModel
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Iniciar ViewModel con su factory para Firebase
+        val repository = JugadorRepository() // Usamos el repositorio que conecta con Firebase
+        val factory = JugadorViewModelFactory(repository)
+        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
+        setContent {
+            GoldenHorsesTheme {
+                LoginScreen(viewModel = jugadorViewModel) { nombre ->
+                    navegarAHOME(nombre)
+                }
+            }
+        }
+    }
+
+    // Cambio del idioma (si lo tienes implementado)
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
+    }
+
+    // Navegar a la pantalla principal (HomeActivity) pasando el nombre del jugador
+    private fun navegarAHOME(nombreJugador: String) {
+        val intent = Intent(this, HomeActivity::class.java).apply {
+            putExtra("jugador_nombre", nombreJugador)
+        }
+        startActivity(intent)
+        finish()  // Cierra la actividad de Login una vez que se navega a Home
+    }
+}
+/*class LoginActivity : ComponentActivity() {
 
     private lateinit var jugadorViewModel: JugadorViewModel
 
@@ -76,7 +112,7 @@ class LoginActivity : ComponentActivity() {
         startActivity(intent)
         finish()
     }
-}
+}*/
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -253,6 +289,20 @@ fun LoginScreen(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PreviewLoginScreen() {
+    // Usamos el repositorio que conecta con Firebase
+    val repository = com.eva.goldenhorses.repository.JugadorRepository()
+    val fakeViewModel = com.eva.goldenhorses.viewmodel.JugadorViewModel(repository)
+
+    GoldenHorsesTheme {
+        LoginScreen(
+            viewModel = fakeViewModel,
+            onLoginSuccess = {}
+        )
+    }
+}
+
+/*@Composable
+fun PreviewLoginScreen() {
     // Fake DAO sin operaciones reales
     val fakeDAO = object : JugadorDAO {
         override fun insertarJugador(jugador: Jugador) = Completable.complete()
@@ -272,5 +322,5 @@ fun PreviewLoginScreen() {
             onLoginSuccess = {}
         )
     }
-}
+}*/
 

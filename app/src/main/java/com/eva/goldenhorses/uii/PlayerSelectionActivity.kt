@@ -32,7 +32,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
-import com.eva.goldenhorses.data.AppDatabase
+//import com.eva.goldenhorses.data.AppDatabase
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
@@ -47,6 +47,40 @@ import io.reactivex.rxjava3.schedulers.Schedulers
 
 
 class PlayerSelectionActivity : ComponentActivity() {
+
+    private lateinit var jugadorViewModel: JugadorViewModel
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        // Configuración para la barra de estado
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+            view.setPadding(0, 0, 0, 0)
+            insets
+        }
+
+        // Repositorio de Firebase
+        val repository = JugadorRepository()  // Usamos el repositorio que conecta con Firebase
+        val factory = JugadorViewModelFactory(repository)
+        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: ""
+        SessionManager.guardarJugador(this, nombreJugador)
+
+        setContent {
+            PlayerSelectionScreenWithTopBar(
+                context = this,
+                viewModel = jugadorViewModel,
+                nombreJugador = nombreJugador
+            )
+        }
+    }
+
+/*class PlayerSelectionActivity : ComponentActivity() {
 
     private lateinit var jugadorViewModel: JugadorViewModel
 
@@ -75,7 +109,7 @@ class PlayerSelectionActivity : ComponentActivity() {
             PlayerSelectionScreenWithTopBar(context = this, viewModel = jugadorViewModel, nombreJugador = nombreJugador)
         }
     }
-
+*/
     override fun attachBaseContext(newBase: Context) {
         val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
         super.attachBaseContext(context)
@@ -338,7 +372,7 @@ fun PlayerSelectionScreen(
         }
     }
 }
-
+/*
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 fun PreviewPlayerSelectionScreenWithTopBar() {
@@ -362,6 +396,31 @@ fun PreviewPlayerSelectionScreenWithTopBar() {
     val fakeRepository = JugadorRepository(fakeDAO)
     val fakeViewModel = JugadorViewModel(fakeRepository)
 
+    GoldenHorsesTheme {
+        PlayerSelectionScreenWithTopBar(
+            context = LocalContext.current,
+            viewModel = fakeViewModel,
+            nombreJugador = fakeJugador.nombre
+        )
+    }
+}
+*/
+@Preview(showBackground = true, showSystemUi = true)
+@Composable
+fun PreviewPlayerSelectionScreenWithTopBar() {
+    val fakeJugador = Jugador(
+        nombre = "JugadorDemo",
+        monedas = 100,
+        partidas = 5,
+        victorias = 2,
+        palo = "Copas"
+    )
+
+    // Usamos el repositorio de Firebase en lugar del repositorio falso
+    val repository = JugadorRepository()  // El repositorio ahora se conecta a Firebase
+    val fakeViewModel = JugadorViewModel(repository)
+
+    // Theme y pantalla de selección del jugador
     GoldenHorsesTheme {
         PlayerSelectionScreenWithTopBar(
             context = LocalContext.current,

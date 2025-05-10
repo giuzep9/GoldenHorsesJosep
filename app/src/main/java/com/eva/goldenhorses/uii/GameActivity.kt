@@ -31,8 +31,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
-import com.eva.goldenhorses.data.AppDatabase
-import com.eva.goldenhorses.data.JugadorDAO
+//import com.eva.goldenhorses.data.AppDatabase
+//import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.*
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
@@ -43,8 +43,55 @@ import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
-
 class GameActivity : ComponentActivity() {
+
+    public var tiempoInicioPartida : Long = 0L
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
+        SessionManager.guardarJugador(this, nombreJugador)
+
+        // Usar el repositorio de Firebase en lugar de la base de datos local
+        val repository = JugadorRepository() // Repositorio Firebase
+        val factory = JugadorViewModelFactory(repository)
+        val jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
+        val controller = WindowInsetsControllerCompat(window, window.decorView)
+        controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.decorView.setOnApplyWindowInsetsListener { view, insets ->
+            view.setPadding(0, 0, 0, 0)
+            insets
+        }
+
+        tiempoInicioPartida = System.currentTimeMillis()
+
+        setContent {
+            val jugador by jugadorViewModel.jugador.collectAsState()
+
+            LaunchedEffect(nombreJugador) {
+                jugadorViewModel.iniciarSesion(nombreJugador)
+
+                val paloDesdeIntent = intent.getStringExtra("jugador_palo")
+                if (paloDesdeIntent != null) {
+                    jugador?.realizarApuesta(paloDesdeIntent)
+                    jugador?.let { jugadorViewModel.actualizarJugador(it) }
+                }
+            }
+
+            jugador?.let { jugador ->
+                GameScreenWithTopBar(jugador = jugador, context = this, viewModel = jugadorViewModel ) {
+                    jugadorViewModel.actualizarJugador(jugador)
+                }
+            }
+        }
+    }
+
+
+/*class GameActivity : ComponentActivity() {
 
     public var tiempoInicioPartida : Long = 0L
 
@@ -90,7 +137,7 @@ class GameActivity : ComponentActivity() {
                 }
             }
         }
-    }
+    }*/
     override fun attachBaseContext(newBase: Context) {
         val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
         super.attachBaseContext(context)
@@ -507,7 +554,7 @@ fun PreviewGameScreenWithTopBar() {
         palo = "Oros"
     )
 
-    val fakeDAO = object : JugadorDAO {
+    /*val fakeDAO = object : JugadorDAO {
         override fun insertarJugador(jugador: Jugador) = Completable.complete()
         override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
         override fun actualizarJugador(jugador: Jugador) = Completable.complete()
@@ -524,6 +571,19 @@ fun PreviewGameScreenWithTopBar() {
             jugador = fakeJugador,
             context = LocalContext.current,
             viewModel = fakeViewModel,
+            onGameFinished = {}
+        )
+    }
+}*/
+    val repository = JugadorRepository() // Usamos el repositorio real que conecta con Firebase
+    val factory = JugadorViewModelFactory(repository)
+    val viewModel = factory.create(JugadorViewModel::class.java)
+
+    GoldenHorsesTheme {
+        GameScreenWithTopBar(
+            jugador = fakeJugador, // Puedes pasar un jugador de prueba aquí si lo deseas
+            context = LocalContext.current,
+            viewModel = viewModel,
             onGameFinished = {}
         )
     }
