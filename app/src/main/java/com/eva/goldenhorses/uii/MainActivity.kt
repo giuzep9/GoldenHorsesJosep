@@ -7,6 +7,134 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import com.eva.goldenhorses.R
+import com.eva.goldenhorses.data.auth.GoogleAuthRepository
+import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
+import com.google.android.gms.auth.api.signin.GoogleSignIn
+import com.google.android.gms.auth.api.signin.GoogleSignInOptions
+import com.google.firebase.auth.FirebaseAuth
+
+class MainActivity : ComponentActivity() {
+
+    private lateinit var googleAuthRepository: GoogleAuthRepository
+    private val RC_SIGN_IN = 1001
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent {
+            GoldenHorsesTheme {
+                WelcomeScreen { navigateToLogin() }
+            }
+        }
+
+        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
+            .requestIdToken(getString(R.string.default_web_client_id))
+            .requestEmail()
+            .build()
+
+        val googleSignInClient = GoogleSignIn.getClient(this, gso)
+        val firebaseAuth = FirebaseAuth.getInstance()
+        googleAuthRepository = GoogleAuthRepository(firebaseAuth, googleSignInClient)
+    }
+
+    private fun navigateToLogin() {
+        googleAuthRepository.signOut {
+            val signInIntent = googleAuthRepository.getSignInIntent()
+            startActivityForResult(signInIntent, RC_SIGN_IN)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+
+        if (requestCode == RC_SIGN_IN) {
+            val task = GoogleSignIn.getSignedInAccountFromIntent(data)
+            val account = task.result
+            if (account != null && account.idToken != null) {
+                googleAuthRepository.firebaseAuthWithGoogle(account.idToken!!) { success, userName ->
+                    if (success) {
+                        Toast.makeText(this, "¡Bienvenido $userName!", Toast.LENGTH_SHORT).show()
+                        val intent = Intent(this, HomeActivity::class.java).apply {
+                            putExtra("jugador_nombre", userName)
+                        }
+                        startActivity(intent)
+                        finish()
+                    } else {
+                        Toast.makeText(this, "Error en el inicio de sesión", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            } else {
+                Toast.makeText(this, "No se seleccionó ninguna cuenta", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+}
+
+@Composable
+fun WelcomeScreen(onPlayClick: () -> Unit) {
+    Box(modifier = Modifier.fillMaxSize()) {
+        Image(
+            painter = painterResource(id = R.drawable.portada),
+            contentDescription = "Fondo de la pantalla de inicio",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = ContentScale.Crop
+        )
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(bottom = 50.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.logo),
+                contentDescription = "Logo del videojuego",
+                modifier = Modifier
+                    .width(450.dp)
+                    .height(325.dp)
+                    .padding(top = 50.dp)
+            )
+
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Bottom
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.boton_empezar),
+                    contentDescription = "Botón JUGAR",
+                    modifier = Modifier
+                        .width(500.dp)
+                        .height(200.dp)
+                        .clickable { onPlayClick() }
+                )
+            }
+        }
+    }
+}
+
+@Preview(showBackground = true)
+@Composable
+fun PreviewWelcomeScreen() {
+    WelcomeScreen(onPlayClick = {})
+}
+/*package com.eva.goldenhorses.uii
+
+import android.content.Intent
+import android.os.Bundle
+import android.widget.Toast
+import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -153,3 +281,4 @@ fun WelcomeScreen(onPlayClick: () -> Unit) {
 fun PreviewWelcomeScreen() {
     WelcomeScreen(onPlayClick = {})
 }
+*/
