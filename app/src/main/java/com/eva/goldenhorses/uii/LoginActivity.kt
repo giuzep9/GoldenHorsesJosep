@@ -25,7 +25,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
-import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.model.Jugador
@@ -34,31 +33,42 @@ import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.utils.*
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
+import io.reactivex.rxjava3.schedulers.Schedulers
 
 class LoginActivity : ComponentActivity() {
 
     private lateinit var jugadorViewModel: JugadorViewModel
+    private var firebaseUid: String? = null
+    private var nombreGoogle: String? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        // ViewModel que usa Firestore
+        // Recuperamos el UID y nombre de Google desde el intent
+        firebaseUid = intent.getStringExtra("firebase_uid")
+        nombreGoogle = intent.getStringExtra("nombre_google")
+
+        if (firebaseUid == null) {
+            Toast.makeText(this, "Error: UID no proporcionado", Toast.LENGTH_SHORT).show()
+            finish()
+            return
+        }
+
         val repository = JugadorRepository()
         val factory = JugadorViewModelFactory(repository)
         jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
         setContent {
             GoldenHorsesTheme {
-                LoginScreen(viewModel = jugadorViewModel) { nombre ->
-                    navegarAHOME(nombre)
-                }
+                LoginScreen(
+                    viewModel = jugadorViewModel,
+                    onLoginSuccess = { nombre -> navegarAHOME(nombre) },
+                    firebaseUid = firebaseUid!!,
+                    nombreGoogle = nombreGoogle
+                )
             }
         }
-    }
-
-    override fun attachBaseContext(newBase: Context) {
-        val context = aplicarIdioma(newBase)
-        super.attachBaseContext(context)
     }
 
     private fun navegarAHOME(nombreJugador: String) {
@@ -68,12 +78,19 @@ class LoginActivity : ComponentActivity() {
         startActivity(intent)
         finish()
     }
+
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase)
+        super.attachBaseContext(context)
+    }
 }
 
 @Composable
 fun LoginScreen(
     viewModel: JugadorViewModel,
-    onLoginSuccess: (String) -> Unit
+    onLoginSuccess: (String) -> Unit,
+    firebaseUid: String,
+    nombreGoogle: String?
 ) {
     var nombreJugador by remember { mutableStateOf("") }
     val context = LocalContext.current
@@ -161,11 +178,9 @@ fun LoginScreen(
                             if (nombreJugador.isNotBlank()) {
                                 SessionManager.guardarJugador(context, nombreJugador)
 
-                                val intent = Intent(context, GoogleLoginActivity::class.java).apply {
-                                    putExtra("nombre_jugador", nombreJugador)
-                                }
-                                context.startActivity(intent)
-                                (context as? Activity)?.finish()
+                                viewModel.crearJugador(firebaseUid, nombreJugador)
+                                onLoginSuccess(nombreJugador)
+
                             } else {
                                 Toast.makeText(
                                     context,
@@ -177,18 +192,5 @@ fun LoginScreen(
                 )
             }
         }
-    }
-}
-
-@Preview(showBackground = true, showSystemUi = true)
-@Composable
-fun PreviewLoginScreen() {
-    val fakeViewModel = JugadorViewModel(JugadorRepository())
-
-    GoldenHorsesTheme {
-        LoginScreen(
-            viewModel = fakeViewModel,
-            onLoginSuccess = {}
-        )
     }
 }

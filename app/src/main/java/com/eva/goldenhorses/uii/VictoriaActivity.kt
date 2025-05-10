@@ -37,10 +37,16 @@ import androidx.activity.result.ActivityResultLauncher
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.CalendarContract
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
+import com.eva.goldenhorses.repository.JugadorRepository
+import com.eva.goldenhorses.viewmodel.JugadorViewModel
+import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 import java.util.TimeZone
 
 
@@ -52,9 +58,15 @@ class VictoriaActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
+
         val caballoPalo = intent.getStringExtra("jugador_palo") ?: "Oros"
         val caballoGanador = intent.getStringExtra("caballo_ganador") ?: ""
+
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        val repository = JugadorRepository()
+        val factory = JugadorViewModelFactory(repository)
+        val jugadorViewModel = factory.create(JugadorViewModel::class.java)
+        if (uid != null) jugadorViewModel.comprobarJugadorPorUid(uid)
 
         createImageLauncher =
             registerForActivityResult(ActivityResultContracts.CreateDocument("image/png")) { uri: Uri? ->
@@ -72,34 +84,31 @@ class VictoriaActivity : ComponentActivity() {
 
         if (!isMusicMuted) {
             val mediaPlayer = MediaPlayer.create(this, R.raw.victoria)
-            mediaPlayer.setOnCompletionListener {
-                it.release()
-            }
+            mediaPlayer.setOnCompletionListener { it.release() }
             mediaPlayer.start()
         }
 
         setContent {
-            VictoriaScreen(caballoPalo = caballoPalo, nombreJugador = nombreJugador)
+            val jugador by jugadorViewModel.jugador.collectAsState()
+            jugador?.let {
+                VictoriaScreen(caballoPalo = caballoPalo, nombreJugador = it.nombre)
+            }
         }
 
         if (caballoPalo == caballoGanador) {
             if (
-                ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.READ_CALENDAR
-                ) == PackageManager.PERMISSION_GRANTED &&
-                ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.WRITE_CALENDAR
-                ) == PackageManager.PERMISSION_GRANTED
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED &&
+                ContextCompat.checkSelfPermission(this, android.Manifest.permission.WRITE_CALENDAR) == PackageManager.PERMISSION_GRANTED
             ) {
                 val calendarId = obtenerCalendarioValido(contentResolver)
                 if (calendarId != null) {
-                    insertarEventoCalendario(
-                        calendarId = calendarId,
-                        titulo = "Victoria en Golden Horses",
-                        descripcion = "¡$nombreJugador ha ganado una partida apostando por $caballoPalo!"
-                    )
+                    jugadorViewModel.jugador.value?.let { jugador ->
+                        insertarEventoCalendario(
+                            calendarId = calendarId,
+                            titulo = "Victoria en Golden Horses",
+                            descripcion = "¡${jugador.nombre} ha ganado una partida apostando por $caballoPalo!"
+                        )
+                    }
                 }
             } else {
                 ActivityCompat.requestPermissions(
@@ -112,15 +121,13 @@ class VictoriaActivity : ComponentActivity() {
                 )
             }
         }
-        val tiempoResolucionMs = intent.getLongExtra("tiempo_resolucion", 0L)
 
-        if (tiempoResolucionMs > 0L) {
-            mostrarNotificacionVictoria(tiempoResolucionMs)
-        }
+        val tiempoResolucionMs = intent.getLongExtra("tiempo_resolucion", 0L)
+        if (tiempoResolucionMs > 0L) mostrarNotificacionVictoria(tiempoResolucionMs)
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             if (ContextCompat.checkSelfPermission(
-                    this,
-                    android.Manifest.permission.POST_NOTIFICATIONS
+                    this, android.Manifest.permission.POST_NOTIFICATIONS
                 ) != PackageManager.PERMISSION_GRANTED
             ) {
                 ActivityCompat.requestPermissions(
@@ -240,7 +247,6 @@ class VictoriaActivity : ComponentActivity() {
             }
         }
     }
-
 
     @SuppressLint("ServiceCast")
     private fun mostrarNotificacionVictoria(tiempoMs: Long) {

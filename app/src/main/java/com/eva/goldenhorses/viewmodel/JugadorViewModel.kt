@@ -19,23 +19,22 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
 
     private val _jugador = MutableStateFlow<Jugador?>(null)
     val jugador: StateFlow<Jugador?> = _jugador
+    private val _nombreUsuarioExiste = MutableStateFlow<Boolean?>(null)
+    val nombreUsuarioExiste: StateFlow<Boolean?> = _nombreUsuarioExiste
     private val _pais = MutableStateFlow<String?>(null)
     val pais: StateFlow<String?> = _pais
 
-    fun iniciarSesion(nombre: String) {
-        val disposable = repository.obtenerJugador(nombre)
+    fun comprobarJugadorPorUid(uid: String) {
+        val disposable = repository.obtenerJugadorPorUid(uid)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ jugadorExistente ->
-                _jugador.value = jugadorExistente
-            }, { error ->
-                error.printStackTrace()
+            .subscribe({ jugador ->
+                _jugador.value = jugador
+                _nombreUsuarioExiste.value = true
             }, {
-                // No existe → crear uno nuevo
-                val nuevo = Jugador(nombre, 100, 0, 0, "Oros")
-                insertarJugador(nuevo)
-                _jugador.value = nuevo
-                Log.d("JugadorViewModel", "Jugador creado en Firestore: $nuevo")
+                it.printStackTrace()
+            }, {
+                _nombreUsuarioExiste.value = false  // No existe, ir a LoginActivity
             })
         disposables.add(disposable)
     }
@@ -57,7 +56,20 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
-                // Insertado con éxito
+                _jugador.value = jugador  // ← lo marcamos como jugador actual
+            }, {
+                it.printStackTrace()
+            })
+        disposables.add(disposable)
+    }
+
+    fun crearJugador(uid: String, nombre: String) {
+        val jugador = Jugador(uid = uid, nombre = nombre)
+        val disposable = repository.insertarJugador(jugador)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                _jugador.value = jugador
             }, {
                 it.printStackTrace()
             })
@@ -69,7 +81,7 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ jugador ->
-                // Ya existe → nada que hacer
+                _jugador.value = jugador  // Si ya existe, lo marcamos
             }, {
                 it.printStackTrace()
             }, {

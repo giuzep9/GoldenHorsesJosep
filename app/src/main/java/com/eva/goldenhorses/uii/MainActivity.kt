@@ -39,9 +39,10 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun navigateToLogin() {
-        val intent = Intent(this, LoginActivity::class.java)
+        val intent = Intent(this, GoogleLoginActivity::class.java)
         startActivity(intent)
     }
+
 }
 
 @Composable

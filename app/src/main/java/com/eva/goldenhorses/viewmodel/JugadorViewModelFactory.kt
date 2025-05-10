@@ -11,5 +11,3 @@ class JugadorViewModelFactory(
         return JugadorViewModel(repository) as T
     }
 }
-
-

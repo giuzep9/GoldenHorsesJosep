@@ -60,11 +60,8 @@ class PlayerSelectionActivity : ComponentActivity() {
             insets
         }
 
-        // Obtenemos el ViewModel desde Application (ya configurado con Firestore)
         jugadorViewModel = JugadorViewModel(JugadorRepository())
-
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: ""
-        SessionManager.guardarJugador(this, nombreJugador)
 
         setContent {
             PlayerSelectionScreenWithTopBar(context = this, viewModel = jugadorViewModel, nombreJugador = nombreJugador)
@@ -88,6 +85,7 @@ class PlayerSelectionActivity : ComponentActivity() {
             startService(musicIntent)
         }
     }
+
     fun abrirSelectorMusica() {
         selectMusicLauncher.launch(arrayOf("audio/*"))
     }
@@ -107,10 +105,6 @@ fun PlayerSelectionScreenWithTopBar(
         val lat = jugador?.latitud
         val lon = jugador?.longitud
         if (lat != null && lon != null) obtenerPaisDesdeUbicacion(context, lat, lon) else null
-    }
-
-    LaunchedEffect(nombreJugador) {
-        viewModel.iniciarSesion(nombreJugador)
     }
 
     Scaffold(
@@ -134,33 +128,18 @@ fun PlayerSelectionScreenWithTopBar(
             viewModel = viewModel,
             nombreJugador = nombreJugador,
             onPlayerSelected = { nombre, palo ->
-                viewModel.repository.obtenerJugador(nombre)
-                    .subscribeOn(Schedulers.io())
-                    .observeOn(AndroidSchedulers.mainThread())
-                    .subscribe({ jugadorExistente ->
-                        val jugadorActualizado = jugadorExistente
-                        jugadorActualizado.realizarApuesta(palo)
-                        jugadorActualizado.palo = palo
-                        viewModel.actualizarJugador(jugadorActualizado)
-                        context.startActivity(Intent(context, GameActivity::class.java).apply {
-                            putExtra("jugador_nombre", jugadorActualizado.nombre)
-                            putExtra("jugador_palo", jugadorActualizado.palo)
-                            putExtra("jugador_monedas", jugadorActualizado.monedas)
-                        })
-                        (context as? Activity)?.finish()
-                    }, { error ->
-                        error.printStackTrace()
-                    }, {
-                        val nuevoJugador = Jugador(nombre, 100, 0, 0, palo)
-                        nuevoJugador.realizarApuesta(palo)
-                        viewModel.insertarJugador(nuevoJugador)
-                        context.startActivity(Intent(context, GameActivity::class.java).apply {
-                            putExtra("jugador_nombre", nuevoJugador.nombre)
-                            putExtra("jugador_palo", nuevoJugador.palo)
-                            putExtra("jugador_monedas", nuevoJugador.monedas)
-                        })
-                        (context as? Activity)?.finish()
+                val jugadorActual = viewModel.jugador.value
+                if (jugadorActual != null) {
+                    jugadorActual.realizarApuesta(palo)
+                    jugadorActual.palo = palo
+                    viewModel.actualizarJugador(jugadorActual)
+                    context.startActivity(Intent(context, GameActivity::class.java).apply {
+                        putExtra("jugador_palo", jugadorActual.palo)
                     })
+                    (context as? Activity)?.finish()
+                } else {
+                    Toast.makeText(context, "Error: jugador no encontrado", Toast.LENGTH_LONG).show()
+                }
             },
             modifier = Modifier.padding(paddingValues)
         )

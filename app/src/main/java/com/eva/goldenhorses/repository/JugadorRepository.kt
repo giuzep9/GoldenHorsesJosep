@@ -12,7 +12,7 @@ open class JugadorRepository {
 
     open fun insertarJugador(jugador: Jugador): Completable {
         return Completable.create { emitter ->
-            jugadoresRef.document(jugador.nombre)
+            jugadoresRef.document(jugador.uid)
                 .set(jugador)
                 .addOnSuccessListener { emitter.onComplete() }
                 .addOnFailureListener { emitter.onError(it) }
@@ -38,6 +38,39 @@ open class JugadorRepository {
                 .addOnFailureListener { emitter.onError(it) }
         }
     }
+
+    open fun obtenerJugadorPorUid(uid: String): Maybe<Jugador> {
+        return Maybe.create { emitter ->
+            jugadoresRef.document(uid)
+                .get()
+                .addOnSuccessListener { doc ->
+                    val jugador = doc.toObject(Jugador::class.java)
+                    if (jugador != null) emitter.onSuccess(jugador)
+                    else emitter.onComplete()
+                }
+                .addOnFailureListener { emitter.onError(it) }
+        }
+    }
+
+    open fun insertarJugadorConUid(nombre: String, uid: String): Completable {
+        val jugador = hashMapOf(
+            "nombre" to nombre,
+            "uid" to uid,
+            "monedas" to 100,
+            "partidas" to 0,
+            "victorias" to 0,
+            "palo" to "Oros",
+            "latitud" to null,
+            "longitud" to null
+        )
+        return Completable.create { emitter ->
+            jugadoresRef.document(nombre)
+                .set(jugador)
+                .addOnSuccessListener { emitter.onComplete() }
+                .addOnFailureListener { emitter.onError(it) }
+        }
+    }
+
 
     open fun actualizarJugador(jugador: Jugador): Completable {
         return insertarJugador(jugador) // porque set() sobreescribe si existe

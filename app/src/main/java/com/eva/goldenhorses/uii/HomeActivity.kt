@@ -46,6 +46,11 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.repository.JugadorRepository
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FirebaseFirestore
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 
 class HomeActivity : ComponentActivity() {
 
@@ -55,6 +60,37 @@ class HomeActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid == null) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
+
+        val repository = JugadorRepository()
+        val factory = JugadorViewModelFactory(repository)
+        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+
+        jugadorViewModel.comprobarJugadorPorUid(uid)
+
+        jugadorViewModel.jugador
+            .onEach { jugador ->
+                if (jugador != null) {
+                    SessionManager.guardarJugador(this, jugador.nombre)
+                    fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
+                    obtenerUbicacion(jugador.uid)
+
+                    setContent {
+                        HomeScreenWithTopBar(this, jugadorViewModel, jugador.nombre)
+                    }
+                } else {
+                    startActivity(Intent(this, LoginActivity::class.java))
+                    finish()
+                }
+            }
+            .launchIn(lifecycleScope)
+
+        // Configuración visual
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
         WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -64,26 +100,6 @@ class HomeActivity : ComponentActivity() {
         }
 
         startService(Intent(this, MusicService::class.java))
-
-        val repository = JugadorRepository()
-        val factory = JugadorViewModelFactory(repository)
-        val jugadorViewModel = factory.create(JugadorViewModel::class.java)
-
-
-        val nombreJugadorIntent = intent.getStringExtra("jugador_nombre")
-        if (!nombreJugadorIntent.isNullOrEmpty()) {
-            SessionManager.guardarJugador(this, nombreJugadorIntent)
-        }
-
-        val nombreJugador = SessionManager.obtenerJugador(this)
-        Log.d("HomeActivity", "Nombre obtenido de SessionManager: $nombreJugador")
-
-        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this)
-        obtenerUbicacion(nombreJugador)
-
-        setContent {
-            HomeScreenWithTopBar(this, jugadorViewModel, nombreJugador)
-        }
     }
 
     override fun attachBaseContext(newBase: Context) {
@@ -91,7 +107,7 @@ class HomeActivity : ComponentActivity() {
         super.attachBaseContext(context)
     }
 
-    private fun obtenerUbicacion(nombreJugador: String) {
+    private fun obtenerUbicacion(uid: String) {
         if (ActivityCompat.checkSelfPermission(this, android.Manifest.permission.ACCESS_FINE_LOCATION)
             != PackageManager.PERMISSION_GRANTED
         ) {
@@ -110,7 +126,7 @@ class HomeActivity : ComponentActivity() {
                     val lon = it.longitude
                     Log.d("UBICACION", "Lat: $lat, Lon: $lon")
 
-                    jugadorViewModel.actualizarUbicacion(nombreJugador, lat, lon)
+                    jugadorViewModel.actualizarUbicacion(uid, lat, lon)
                     jugadorViewModel.actualizarPaisDesdeUbicacion(this, lat, lon)
 
                     val pais = obtenerPaisDesdeUbicacion(this, lat, lon)
@@ -162,7 +178,6 @@ fun HomeScreenWithTopBar(
     }
 
     LaunchedEffect(nombreJugador) {
-        viewModel.iniciarSesion(nombreJugador)
         isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
     }
 

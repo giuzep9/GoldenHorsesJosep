@@ -2,12 +2,10 @@ package com.eva.goldenhorses.uii
 
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.result.IntentSenderRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import com.eva.goldenhorses.uii.HomeActivity
 import com.eva.goldenhorses.R
 import com.google.android.gms.auth.api.identity.BeginSignInRequest
 import com.google.android.gms.auth.api.identity.Identity
@@ -21,17 +19,10 @@ class GoogleLoginActivity : ComponentActivity() {
     private lateinit var auth: FirebaseAuth
     private lateinit var oneTapClient: SignInClient
     private lateinit var signInRequest: BeginSignInRequest
-    private lateinit var nombreJugador: String
     private val db = FirebaseFirestore.getInstance()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-
-        nombreJugador = intent.getStringExtra("nombre_jugador") ?: run {
-            Toast.makeText(this, "Nombre de jugador no válido", Toast.LENGTH_SHORT).show()
-            finish()
-            return
-        }
 
         auth = FirebaseAuth.getInstance()
         oneTapClient = Identity.getSignInClient(this)
@@ -53,24 +44,31 @@ class GoogleLoginActivity : ComponentActivity() {
     private fun iniciarLogin() {
         oneTapClient.beginSignIn(signInRequest)
             .addOnSuccessListener { result ->
-                signInLauncher.launch(IntentSenderRequest.Builder(result.pendingIntent.intentSender).build())
+                signInLauncher.launch(
+                    IntentSenderRequest.Builder(result.pendingIntent.intentSender).build()
+                )
             }
             .addOnFailureListener {
                 Toast.makeText(this, "Fallo al iniciar sesión: ${it.localizedMessage}", Toast.LENGTH_LONG).show()
             }
     }
 
-    private val signInLauncher = registerForActivityResult(ActivityResultContracts.StartIntentSenderForResult()) { result ->
+    private val signInLauncher = registerForActivityResult(
+        ActivityResultContracts.StartIntentSenderForResult()
+    ) { result ->
         try {
             val credential = oneTapClient.getSignInCredentialFromIntent(result.data)
             val idToken = credential.googleIdToken
+            val nombreGoogle = credential.displayName ?: "Jugador"
+            val email = credential.id
 
             if (idToken != null) {
                 val firebaseCredential = GoogleAuthProvider.getCredential(idToken, null)
                 auth.signInWithCredential(firebaseCredential)
                     .addOnCompleteListener { task ->
                         if (task.isSuccessful) {
-                            guardarJugadorEnFirestore(nombreJugador)
+                            val uid = auth.currentUser?.uid ?: return@addOnCompleteListener
+                            comprobarJugador(uid, nombreGoogle)
                         } else {
                             Toast.makeText(this, "Error al autenticar con Firebase", Toast.LENGTH_SHORT).show()
                         }
@@ -82,28 +80,25 @@ class GoogleLoginActivity : ComponentActivity() {
         }
     }
 
-    private fun guardarJugadorEnFirestore(nombre: String) {
-        val jugadorRef = db.collection("jugadores").document(nombre)
-        jugadorRef.get().addOnSuccessListener { document ->
-            if (!document.exists()) {
-                val nuevoJugador = hashMapOf(
-                    "nombre" to nombre,
-                    "monedas" to 100,
-                    "partidas" to 0,
-                    "victorias" to 0,
-                    "palo" to "Oros",
-                    "latitud" to null,
-                    "longitud" to null
-                )
-                jugadorRef.set(nuevoJugador).addOnSuccessListener {
-                    navegarAHome(nombre)
-                }.addOnFailureListener {
-                    Toast.makeText(this, "Error al guardar jugador en Firestore", Toast.LENGTH_SHORT).show()
+    private fun comprobarJugador(uid: String, nombreGoogle: String) {
+        db.collection("jugadores").document(uid).get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    val nombreJugador = document.getString("nombre") ?: "Jugador"
+                    navegarAHome(nombreJugador)
+                } else {
+                    // No existe → pedir nombre de usuario
+                    val intent = Intent(this, LoginActivity::class.java).apply {
+                        putExtra("firebase_uid", uid)
+                        putExtra("nombre_google", nombreGoogle)
+                    }
+                    startActivity(intent)
+                    finish()
                 }
-            } else {
-                navegarAHome(nombre)
             }
-        }
+            .addOnFailureListener {
+                Toast.makeText(this, "Error consultando Firestore", Toast.LENGTH_SHORT).show()
+            }
     }
 
     private fun navegarAHome(nombreJugador: String) {

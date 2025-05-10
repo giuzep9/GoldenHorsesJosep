@@ -12,6 +12,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -25,31 +27,52 @@ import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.utils.aplicarIdioma
 import com.eva.goldenhorses.utils.obtenerIdioma
 import androidx.compose.ui.res.stringResource
+import com.eva.goldenhorses.repository.JugadorRepository
+import com.eva.goldenhorses.viewmodel.JugadorViewModel
+import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 
 class DerrotaActivity : ComponentActivity() {
+
+    private lateinit var jugadorViewModel: JugadorViewModel
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
+
         val ganador = intent.getStringExtra("caballo_ganador") ?: "Oros"
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+
+        if (uid == null) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
 
         val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
         val isMusicMuted = sharedPreferences.getBoolean("isMusicMuted", false)
 
         if (!isMusicMuted) {
             val mediaPlayer = MediaPlayer.create(this, R.raw.derrota)
-            mediaPlayer.setOnCompletionListener {
-                it.release()
-            }
+            mediaPlayer.setOnCompletionListener { it.release() }
             mediaPlayer.start()
         }
 
+        val repository = JugadorRepository()
+        val factory = JugadorViewModelFactory(repository)
+        jugadorViewModel = factory.create(JugadorViewModel::class.java)
+        jugadorViewModel.comprobarJugadorPorUid(uid)
+
         setContent {
-            DerrotaScreen(caballoGanador = ganador, nombreJugador = nombreJugador)
+            val jugador by jugadorViewModel.jugador.collectAsState()
+
+            jugador?.let {
+                DerrotaScreen(caballoGanador = ganador, nombreJugador = it.nombre)
+            }
         }
     }
+
     override fun attachBaseContext(newBase: Context) {
-        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
-        super.attachBaseContext(context)
+        super.attachBaseContext(aplicarIdioma(newBase))
     }
 }
 

@@ -39,26 +39,33 @@ import com.eva.goldenhorses.utils.obtenerIdioma
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
 
 class GameActivity : ComponentActivity() {
 
-    public var tiempoInicioPartida : Long = 0L
+    var tiempoInicioPartida: Long = 0L
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
-        SessionManager.guardarJugador(this, nombreJugador)
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid == null) {
+            startActivity(Intent(this, MainActivity::class.java))
+            finish()
+            return
+        }
+
+        val paloDesdeIntent = intent.getStringExtra("jugador_palo")
 
         val repository = JugadorRepository()
         val factory = JugadorViewModelFactory(repository)
         val jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
+        WindowCompat.setDecorFitsSystemWindows(window, false)
         val controller = WindowInsetsControllerCompat(window, window.decorView)
         controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-        WindowCompat.setDecorFitsSystemWindows(window, false)
         window.decorView.setOnApplyWindowInsetsListener { view, insets ->
             view.setPadding(0, 0, 0, 0)
             insets
@@ -66,41 +73,43 @@ class GameActivity : ComponentActivity() {
 
         tiempoInicioPartida = System.currentTimeMillis()
 
+        jugadorViewModel.comprobarJugadorPorUid(uid)
+
         setContent {
             val jugador by jugadorViewModel.jugador.collectAsState()
 
-            LaunchedEffect(nombreJugador) {
-                jugadorViewModel.iniciarSesion(nombreJugador)
-
-                val paloDesdeIntent = intent.getStringExtra("jugador_palo")
-                if (paloDesdeIntent != null) {
-                    jugador?.realizarApuesta(paloDesdeIntent)
-                    jugador?.let { jugadorViewModel.actualizarJugador(it) }
+            LaunchedEffect(jugador) {
+                jugador?.let {
+                    if (!paloDesdeIntent.isNullOrEmpty()) {
+                        it.realizarApuesta(paloDesdeIntent)
+                        jugadorViewModel.actualizarJugador(it)
+                    }
                 }
             }
 
-            jugador?.let { jugador ->
-                GameScreenWithTopBar(jugador = jugador, context = this, viewModel = jugadorViewModel ) {
-                    jugadorViewModel.actualizarJugador(jugador)
+            jugador?.let {
+                GameScreenWithTopBar(
+                    jugador = it,
+                    context = this,
+                    viewModel = jugadorViewModel
+                ) {
+                    jugadorViewModel.actualizarJugador(it)
                 }
             }
         }
     }
+
     override fun attachBaseContext(newBase: Context) {
-        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
-        super.attachBaseContext(context)
+        super.attachBaseContext(aplicarIdioma(newBase))
     }
-    // Seleccionar canción
+
+    // Music selector
     private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         uri?.let {
-            contentResolver.takePersistableUriPermission(
-                it,
-                Intent.FLAG_GRANT_READ_URI_PERMISSION
-            )
-            val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
-            sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
+            contentResolver.takePersistableUriPermission(it, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                .edit().putString("custom_music_uri", it.toString()).apply()
 
-            // Reiniciar servicio con la nueva música
             val musicIntent = Intent(this, MusicService::class.java).apply {
                 action = MusicService.ACTION_CHANGE_MUSIC
                 putExtra("MUSIC_URI", it.toString())
@@ -108,6 +117,7 @@ class GameActivity : ComponentActivity() {
             startService(musicIntent)
         }
     }
+
     fun abrirSelectorMusica() {
         selectMusicLauncher.launch(arrayOf("audio/*"))
     }
@@ -495,13 +505,15 @@ fun obtenerImagenCarta(carta: Carta): Int {
 fun PreviewGameScreenWithTopBar() {
     val fakeJugador = Jugador(
         nombre = "JugadorDemo",
-        monedas = 200,
-        partidas = 5,
-        victorias = 2,
-        palo = "Oros"
-    )
+        monedas = 120,
+        partidas = 8,
+        victorias = 3,
+        palo = "Copas"
+    ).apply {
+        latitud = 43.26
+        longitud = -2.93
+    }
 
-    // Repositorio falso solo para el Preview
     val fakeRepository = object : JugadorRepository() {
         override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
         override fun insertarJugador(jugador: Jugador) = Completable.complete()
