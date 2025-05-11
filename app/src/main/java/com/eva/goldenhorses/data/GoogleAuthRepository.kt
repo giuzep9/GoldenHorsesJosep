@@ -6,8 +6,7 @@ import com.google.android.gms.auth.api.signin.GoogleSignInClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.GoogleAuthProvider
 import com.google.firebase.firestore.FirebaseFirestore
-
-
+import com.google.firebase.firestore.SetOptions
 
 class GoogleAuthRepository(
     private val auth: FirebaseAuth,
@@ -48,11 +47,12 @@ class GoogleAuthRepository(
         latitud: Double?,
         longitud: Double?
     ) {
-        val jugadorRef = db.collection("jugadores").document(nombre)
+        val userId = auth.currentUser?.uid // Obtener el UID del usuario
+        val jugadorRef = db.collection("jugadores").document(userId!!) // Usar el UID como documento
 
         jugadorRef.get().addOnSuccessListener { document ->
             if (document.exists()) {
-                // Actualiza solo los campos comunes
+                // Actualizar solo los campos comunes
                 val jugadorActualizado = mapOf(
                     "monedas" to monedas,
                     "partidas" to partidas,
@@ -61,13 +61,15 @@ class GoogleAuthRepository(
                     "latitud" to latitud,
                     "longitud" to longitud
                 )
-                jugadorRef.update(jugadorActualizado).addOnSuccessListener {
-                    println("Datos del jugador actualizados en Firestore")
-                }.addOnFailureListener {
-                    println("Error al actualizar datos del jugador: ${it.message}")
-                }
+                jugadorRef.set(jugadorActualizado, SetOptions.merge()) // Usa merge para evitar sobrescribir todo
+                    .addOnSuccessListener {
+                        println("Datos del jugador actualizados en Firestore")
+                    }
+                    .addOnFailureListener {
+                        println("Error al actualizar datos del jugador: ${it.message}")
+                    }
             } else {
-                // Crea jugador nuevo sin victoriasPorDia y premioReclamado
+                // Crear jugador nuevo
                 val nuevoJugador = mapOf(
                     "nombre" to nombre,
                     "monedas" to monedas,
@@ -77,43 +79,14 @@ class GoogleAuthRepository(
                     "latitud" to latitud,
                     "longitud" to longitud
                 )
-                jugadorRef.set(nuevoJugador).addOnSuccessListener {
-                    println("Jugador guardado exitosamente en Firestore")
-                }.addOnFailureListener {
-                    println("Error al guardar jugador en Firestore: ${it.message}")
-                }
+                jugadorRef.set(nuevoJugador, SetOptions.merge()) // Usa merge para no sobrescribir todo
+                    .addOnSuccessListener {
+                        println("Jugador guardado exitosamente en Firestore")
+                    }
+                    .addOnFailureListener {
+                        println("Error al guardar jugador en Firestore: ${it.message}")
+                    }
             }
         }
     }
-
-
-
 }
-
-
-/*class GoogleAuthRepository(
-    private val auth: FirebaseAuth,
-    private val googleSignInClient: GoogleSignInClient
-) {
-    fun getSignInIntent(): Intent = googleSignInClient.signInIntent
-
-    fun signOut(onComplete: () -> Unit) {
-        googleSignInClient.signOut().addOnCompleteListener {
-            onComplete()
-        }
-    }
-
-    fun firebaseAuthWithGoogle(idToken: String, onResult: (Boolean, String?) -> Unit) {
-        val credential = GoogleAuthProvider.getCredential(idToken, null)
-        auth.signInWithCredential(credential)
-            .addOnCompleteListener { task ->
-                if (task.isSuccessful) {
-                    val userName = auth.currentUser?.displayName
-                    onResult(true, userName)
-                } else {
-                    onResult(false, null)
-                }
-            }
-    }
-}
-*/
