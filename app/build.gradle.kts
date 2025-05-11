@@ -81,7 +81,17 @@ dependencies {
     implementation("com.google.firebase:firebase-database")
     implementation("com.google.firebase:firebase-firestore")
     implementation("com.google.android.gms:play-services-auth:21.0.0")
-    // Dependencias para Google Sign-In y Firebase Authentication
+    // Retrofit
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+
+// Moshi para Retrofit
+    implementation ("com.squareup.retrofit2:converter-moshi:2.9.0")
+
+// Moshi con soporte para Kotlin
+    implementation ("com.squareup.moshi:moshi-kotlin:1.15.0")
+
+
+// Dependencias para Google Sign-In y Firebase Authentication
    // implementation ("com.google.android.gms:play-services-auth:20.0.1")
    // implementation ("com.google.firebase:firebase-auth:21.0.0")
 
