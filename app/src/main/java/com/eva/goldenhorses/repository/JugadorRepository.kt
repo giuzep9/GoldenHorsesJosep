@@ -19,23 +19,58 @@ import java.util.Locale
 
 class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
+
+
+
     fun insertarJugadorEnRealtime(jugador: Jugador): Completable {
         return Completable.create { emitter ->
-            val victoriaData = mapOf(
-                "nombre" to jugador.nombre,
-                "victoriasHoy" to jugador.victorias // Asegúrate de pasar el número de victorias
-            )
+            val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val firestore = FirebaseFirestore.getInstance()
+            val docRef = firestore.collection("jugadores")
+                .document(jugador.nombre)
+                .collection("victoriasPorDia")
+                .document(fechaHoy)
 
-            val dbRealtime = FirebaseDatabase.getInstance().reference
-            dbRealtime.child("ranking").child(jugador.nombre).setValue(victoriaData)
-                .addOnSuccessListener {
-                    emitter.onComplete() // Completa el Completable si la tarea fue exitosa
+            docRef.get()
+                .addOnSuccessListener { document ->
+                    val victoriasHoy = document.getLong("victorias")?.toInt() ?: 0
+
+                    val jugadorRanking = JugadorRanking(
+                        nombre = jugador.nombre,
+                        victoriasHoy = victoriasHoy
+                    )
+
+                    val dbRealtime = FirebaseDatabase.getInstance().reference
+                    dbRealtime.child("ranking").child(jugador.nombre).setValue(jugadorRanking)
+                        .addOnSuccessListener {
+                            emitter.onComplete()
+                        }
+                        .addOnFailureListener { e ->
+                            emitter.onError(e)
+                        }
                 }
                 .addOnFailureListener { e ->
-                    emitter.onError(e) // Propaga el error en caso de fallo
+                    emitter.onError(e)
                 }
         }
     }
+    /*fun insertarJugadorEnRealtime(jugador: Jugador): Completable {
+            return Completable.create { emitter ->
+                val jugadorRanking = JugadorRanking(
+                    nombre = jugador.nombre,
+                    victoriasHoy = jugador.victorias
+                )
+
+                val dbRealtime = FirebaseDatabase.getInstance().reference
+                dbRealtime.child("ranking").child(jugador.nombre).setValue(jugadorRanking)
+                    .addOnSuccessListener {
+                        emitter.onComplete()
+                    }
+                    .addOnFailureListener { e ->
+                        emitter.onError(e)
+                    }
+            }
+        }*/
 
 
     fun insertarJugador(jugador: Jugador): Completable {
