@@ -102,9 +102,6 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
         }
     }
 
-
-
-
     fun obtenerJugador(nombre: String): Maybe<Jugador> {
         return Maybe.create { emitter ->
             db.collection("jugadores")
@@ -193,10 +190,13 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
                 onResult(0) // Si hay error, devolvemos 0 victorias
             }
     }
-    fun obtenerRankingDelDia(callback: (List<JugadorRanking>) -> Unit) {
-        val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    fun obtenerRankingDelDiaAnterior(callback: (List<JugadorRanking>, String?) -> Unit) {
+        val fechaAyer = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_MONTH, -1)
+        }.time)
         val db = FirebaseFirestore.getInstance()
         val rankingList = mutableListOf<JugadorRanking>()
+        var ganadorDelDia: String? = null
 
         db.collection("jugadores").get().addOnSuccessListener { jugadoresSnapshot ->
             val total = jugadoresSnapshot.size()
@@ -206,23 +206,30 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
                 val nombre = jugadorDoc.id
 
                 jugadorDoc.reference.collection("victoriasPorDia")
-                    .document(fechaHoy)
+                    .document(fechaAyer)
                     .get()
                     .addOnSuccessListener { docDia ->
-                        val victoriasHoy = docDia.getLong("victorias")?.toInt() ?: 0
-                        if (victoriasHoy > 0) {
-                            rankingList.add(JugadorRanking(nombre, victoriasHoy))
+                        val victoriasAyer = docDia.getLong("victorias")?.toInt() ?: 0
+                        if (victoriasAyer > 0) {
+                            rankingList.add(JugadorRanking(nombre, victoriasAyer))
                         }
 
                         procesados++
                         if (procesados == total) {
                             // Ordenar por victorias descendente
-                            callback(rankingList.sortedByDescending { it.victoriasHoy })
+                            val rankingOrdenado = rankingList.sortedByDescending { it.victoriasHoy }
+
+                            // Obtener el ganador del día anterior (primer jugador de la lista)
+                            ganadorDelDia = rankingOrdenado.firstOrNull()?.nombre
+
+                            callback(rankingOrdenado, ganadorDelDia)
                         }
                     }
             }
         }
     }
+
+
 
     fun premiarSiEsPrimerLugar(ranking: List<JugadorRanking>, jugadorActual: String) {
         if (ranking.isNotEmpty() && ranking[0].nombre == jugadorActual) {

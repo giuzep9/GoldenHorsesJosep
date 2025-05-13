@@ -3,6 +3,7 @@ package com.eva.goldenhorses.ui
 
 import android.content.Context
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -46,8 +47,145 @@ class RankingActivity : ComponentActivity() {
             }
         }
     }
+    fun obtenerRankingDelDiaAnterior(callback: (List<JugadorRanking>, String?) -> Unit) {
+        val fechaAyer = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Calendar.getInstance().apply {
+            add(Calendar.DAY_OF_MONTH, -1)
+        }.time)
+        val db = FirebaseFirestore.getInstance()
+        val rankingList = mutableListOf<JugadorRanking>()
+        var ganadorDelDia: String? = null
+
+        db.collection("jugadores").get().addOnSuccessListener { jugadoresSnapshot ->
+            val total = jugadoresSnapshot.size()
+            var procesados = 0
+
+            for (jugadorDoc in jugadoresSnapshot) {
+                val nombre = jugadorDoc.id
+
+                jugadorDoc.reference.collection("victoriasPorDia")
+                    .document(fechaAyer)
+                    .get()
+                    .addOnSuccessListener { docDia ->
+                        val victoriasAyer = docDia.getLong("victorias")?.toInt() ?: 0
+                        if (victoriasAyer > 0) {
+                            rankingList.add(JugadorRanking(nombre, victoriasAyer))
+
+                            // Mostrar victorias de ayer para cada jugador
+                          //  Log.d("Ranking", "$nombre: Victorias ayer = $victoriasAyer")
+
+                            // Mostrar victorias en un Toast
+                            //Toast.makeText(applicationContext, "$nombre: Victorias ayer = $victoriasAyer", Toast.LENGTH_SHORT).show()
+                        }
+
+                        procesados++
+                        if (procesados == total) {
+                            // Ordenar por victorias descendente
+                            val rankingOrdenado = rankingList.sortedByDescending { it.victoriasHoy }
+
+                            // Obtener el ganador del día anterior (primer jugador de la lista)
+                            ganadorDelDia = rankingOrdenado.firstOrNull()?.nombre
+
+                            // Mostrar el nombre del jugador ganador en un Toast
+                            if (ganadorDelDia != null) {
+                                Toast.makeText(applicationContext, "Ganador de ayer: $ganadorDelDia", Toast.LENGTH_SHORT).show()
+                            }
+
+                            callback(rankingOrdenado, ganadorDelDia)
+                        }
+                    }
+            }
+        }
+    }
+
 
     @Composable
+    fun RankingScreen(viewModel: RankingViewModel) {
+        val ranking by viewModel.ranking.collectAsState()
+        val error by viewModel.error.collectAsState()
+        val context = LocalContext.current
+        val db = FirebaseFirestore.getInstance()
+
+        var esGanadorDeAyer by remember { mutableStateOf(false) }  // Estado para saber si es ganador
+
+        // Obtener el ranking del día anterior y verificar si eres el ganador
+        LaunchedEffect(Unit) {
+            obtenerRankingDelDiaAnterior { rankingList, ganadorDelDia ->
+                val jugadorActual = FirebaseAuth.getInstance().currentUser
+                if (jugadorActual != null) {
+                    // Verificar si el jugador actual es el ganador
+                    esGanadorDeAyer = ganadorDelDia == jugadorActual.displayName
+                }
+            }
+        }
+
+        if (error != null) {
+            Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
+        }
+
+        Box(modifier = Modifier.fillMaxSize()) {
+            // Fondo de imagen
+            Image(
+                painter = painterResource(id = R.drawable.fondo_ranking),
+                contentDescription = null,
+                modifier = Modifier.fillMaxSize(),
+                contentScale = ContentScale.Crop
+            )
+
+            // Contenedor blanco translúcido
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(start = 24.dp, end = 24.dp, top = 160.dp, bottom = 32.dp)
+                    .background(Color.White.copy(alpha = 0.85f), shape = RoundedCornerShape(24.dp))
+                    .padding(16.dp)
+            ) {
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.SpaceBetween,
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Lista de jugadores
+                    LazyColumn(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxWidth()
+                    ) {
+                        items(ranking) { jugador ->
+                            RankingItem(jugador)
+                        }
+                    }
+
+                    // Mostrar el botón solo si el jugador es el ganador de ayer
+                    if (esGanadorDeAyer) {
+                        val botonPremioDrawable = R.drawable.boton_home
+
+                        Image(
+                            painter = painterResource(id = botonPremioDrawable),
+                            contentDescription = "Botón Obtener Premio",
+                            modifier = Modifier
+                                .padding(top = 16.dp)
+                                .size(width = 200.dp, height = 64.dp)
+                                .clickable {
+                                    val jugadorActual = FirebaseAuth.getInstance().currentUser
+                                    if (jugadorActual != null) {
+                                        // Asignar las 120 monedas al jugador
+                                        val jugadorRef = FirebaseFirestore.getInstance().collection("jugadores").document(jugadorActual.uid)
+                                        jugadorRef.update("monedas", FieldValue.increment(120)) // Sumar 120 monedas
+
+                                        // Puedes agregar algún mensaje para informar al jugador de que el premio se ha sumado
+                                        Toast.makeText(context, "¡Felicidades! Has recibido 120 monedas.", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                        )
+                    }
+
+
+                }
+            }
+        }
+    }
+
+    /*@Composable
     fun RankingScreen(viewModel: RankingViewModel) {
         val ranking by viewModel.ranking.collectAsState()
         val error by viewModel.error.collectAsState()
@@ -128,7 +266,7 @@ class RankingActivity : ComponentActivity() {
                 }
             }
         }
-    }
+    }*/
 
     @Composable
     fun RankingItem(jugadorRanking: JugadorRanking) {

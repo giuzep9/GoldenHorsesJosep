@@ -2,6 +2,8 @@ package com.eva.goldenhorses.viewmodel
 
 import android.content.Context
 import android.location.Geocoder
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
@@ -20,6 +22,7 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
     val jugador: StateFlow<Jugador?> = _jugador
     private val _pais = MutableStateFlow<String?>(null)
     val pais: StateFlow<String?> = _pais
+
 
     // Esta función inicia sesión, obteniendo el jugador o creándolo si no existe
     fun iniciarSesion(nombre: String) {
@@ -106,6 +109,7 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
             _pais.value = country
         }
     }
+
 
     // Limpiar los recursos cuando el ViewModel es destruido
     override fun onCleared() {

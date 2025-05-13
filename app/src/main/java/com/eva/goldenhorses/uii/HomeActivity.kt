@@ -274,14 +274,14 @@ fun HomeScreen(
                 painter = painterResource(id = R.drawable.user_icon),
                 contentDescription = "User Icon",
                 modifier = Modifier
-                    .size(200.dp)
+                    .size(140.dp)
                     .clip(CircleShape),
                 contentScale = ContentScale.Fit
             )
 
             Text(
                 text = nombreJugador,
-                fontSize = 50.sp,
+                fontSize = 30.sp,
                 color = Color.Black,
                 fontWeight = FontWeight.Bold,
                 modifier = Modifier.padding(10.dp)
@@ -293,25 +293,25 @@ fun HomeScreen(
                 color = Color.Black
             )
             Text(
-                text = "${stringResource(R.string.victorias)}: $victorias",
+                text = "Victorias totales: $victorias",
                 fontSize = 18.sp,
                 color = Color.Black,
-                modifier = Modifier.padding(bottom = 32.dp)
+               // modifier = Modifier.padding(bottom = 32.dp)
             )
 
 
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(bottom = 90.dp),
+                    .padding(bottom = 40.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Bottom
+                verticalArrangement = Arrangement.Center
             ) {
                 Image(
                     painter = painterResource(id = R.drawable.ic_premio), // Asegúrate de tener este icono en res/drawable
                     contentDescription = "Icono Ranking",
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(140.dp)
                         .clickable {
                             context.startActivity(Intent(context, RankingActivity::class.java))
                         }
