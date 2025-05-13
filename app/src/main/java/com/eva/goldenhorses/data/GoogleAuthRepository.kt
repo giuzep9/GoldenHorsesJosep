@@ -47,46 +47,33 @@ class GoogleAuthRepository(
         latitud: Double?,
         longitud: Double?
     ) {
-        val userId = auth.currentUser?.uid // Obtener el UID del usuario
-        val jugadorRef = db.collection("jugadores").document(userId!!) // Usar el UID como documento
+        val userId = auth.currentUser?.uid ?: return // Asegura que no es null
+        val jugadorRef = db.collection("jugadores").document(userId)
+
+        val datosBase = mapOf(
+            "nombre" to nombre,
+            "monedas" to monedas,
+            "partidas" to partidas,
+            "victorias" to victorias,
+            "palo" to palo,
+            "latitud" to latitud,
+            "longitud" to longitud,
+            "victoriasPorDia" to emptyMap<String, Int>()
+        )
 
         jugadorRef.get().addOnSuccessListener { document ->
-            if (document.exists()) {
-                // Actualizar solo los campos comunes
-                val jugadorActualizado = mapOf(
-                    "monedas" to monedas,
-                    "partidas" to partidas,
-                    "victorias" to victorias,
-                    "palo" to palo,
-                    "latitud" to latitud,
-                    "longitud" to longitud
-                )
-                jugadorRef.set(jugadorActualizado, SetOptions.merge()) // Usa merge para evitar sobrescribir todo
-                    .addOnSuccessListener {
-                        println("Datos del jugador actualizados en Firestore")
-                    }
-                    .addOnFailureListener {
-                        println("Error al actualizar datos del jugador: ${it.message}")
-                    }
-            } else {
-                // Crear jugador nuevo
-                val nuevoJugador = mapOf(
-                    "nombre" to nombre,
-                    "monedas" to monedas,
-                    "partidas" to partidas,
-                    "victorias" to victorias,
-                    "palo" to palo,
-                    "latitud" to latitud,
-                    "longitud" to longitud
-                )
-                jugadorRef.set(nuevoJugador, SetOptions.merge()) // Usa merge para no sobrescribir todo
-                    .addOnSuccessListener {
-                        println("Jugador guardado exitosamente en Firestore")
-                    }
-                    .addOnFailureListener {
-                        println("Error al guardar jugador en Firestore: ${it.message}")
-                    }
-            }
+            jugadorRef.set(datosBase, SetOptions.merge())
+                .addOnSuccessListener {
+                    println(
+                        if (document.exists())
+                            "Datos del jugador actualizados en Firestore"
+                        else
+                            "Jugador guardado exitosamente en Firestore"
+                    )
+                }
+                .addOnFailureListener {
+                    println("Error al guardar/actualizar jugador: ${it.message}")
+                }
         }
     }
 }
