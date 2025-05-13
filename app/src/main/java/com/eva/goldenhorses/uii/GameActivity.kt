@@ -41,12 +41,12 @@ import com.eva.goldenhorses.utils.obtenerIdioma
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import com.google.firebase.firestore.FieldValue
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 import com.google.firebase.firestore.FirebaseFirestore
-
-
+import com.google.firebase.firestore.SetOptions
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
 
@@ -192,58 +192,24 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
         "Espadas" to R.drawable.cab_espadas
     )
 
-   /* LaunchedEffect(carreraFinalizada) {
-        if (carreraFinalizada) {
-            val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
-            Log.d("DEBUG", "Jugador: $jugador, Palo: ${jugador.palo}, Ganador: $ganador")
-            jugador.actualizarMonedas(ganador)
-            viewModel.actualizarJugador(jugador)
-
-            // Actualizamos estadísticas del jugador
-            jugador.partidas += 1
-            if (ganador == jugador.palo) {
-                jugador.victorias += 1
-            }
-
-            onGameFinished() // Guardar en la base de datos
-
-            val intent = if (jugador.palo == ganador) {
-                Intent(context, VictoriaActivity::class.java).apply {
-                    putExtra("jugador_palo", jugador.palo)
-                    putExtra("caballo_ganador", ganador)
-                    putExtra("jugador_nombre", jugador.nombre)
-                    putExtra("tiempo_resolucion", System.currentTimeMillis() - (context as GameActivity).tiempoInicioPartida)
-                }
-            } else {
-                Intent(context, DerrotaActivity::class.java).apply {
-                    putExtra("caballo_ganador", ganador)
-                    putExtra("jugador_nombre", jugador.nombre)
-                }
-            }
-
-            context.startActivity(intent)
-            //(context as? Activity)?.finish()
-        }
-    }
-*/
     LaunchedEffect(carreraFinalizada) {
         if (carreraFinalizada) {
             val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
             Log.d("DEBUG", "Jugador: $jugador, Palo: ${jugador.palo}, Ganador: $ganador")
-            jugador.actualizarMonedas(ganador)
-            viewModel.actualizarJugador(jugador)
 
-            // Actualizamos estadísticas del jugador
+            jugador.actualizarMonedas(ganador)
             jugador.partidas += 1
+
             if (ganador == jugador.palo) {
                 jugador.victorias += 1
+                jugador.registrarVictoriaDiaria()
 
-                // 👉 Añade aquí la lógica para guardar la victoria del día en Firebase
                 val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
                 val jugadorId = jugador.nombre
                 val db = FirebaseFirestore.getInstance()
                 val docRef = db.collection("jugadores").document(jugadorId)
 
+                // Historial personal en subcolección
                 docRef.collection("victoriasPorDia").document(fechaHoy)
                     .get().addOnSuccessListener { document ->
                         val victoriasActuales = document.getLong("victorias") ?: 0
@@ -251,9 +217,21 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                         docRef.collection("victoriasPorDia").document(fechaHoy)
                             .set(mapOf("victorias" to nuevasVictorias))
                     }
+
+                // Campo anidado en documento principal (crea si no existe)
+                docRef.set(
+                    mapOf("victoriasPorDia" to mapOf(fechaHoy to FieldValue.increment(1))),
+                    SetOptions.merge()
+                )
+
+                // Realtime Database para ranking diario
+                val repository = JugadorRepository()
+                repository.insertarJugadorEnRealtime(jugador).subscribe({}, {})
             }
 
-            onGameFinished() // Guardar en la base de datos
+
+            viewModel.actualizarJugador(jugador)
+            onGameFinished()
 
             val intent = if (jugador.palo == ganador) {
                 Intent(context, VictoriaActivity::class.java).apply {
@@ -270,7 +248,6 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             }
 
             context.startActivity(intent)
-            //(context as? Activity)?.finish()
         }
     }
 
@@ -562,27 +539,6 @@ fun PreviewGameScreenWithTopBar() {
         palo = "Oros"
     )
 
-    /*val fakeDAO = object : JugadorDAO {
-        override fun insertarJugador(jugador: Jugador) = Completable.complete()
-        override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
-        override fun actualizarJugador(jugador: Jugador) = Completable.complete()
-        override fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
-            return Completable.complete()
-        }
-    }
-
-    val fakeRepository = JugadorRepository(fakeDAO)
-    val fakeViewModel = JugadorViewModel(fakeRepository)
-
-    GoldenHorsesTheme {
-        GameScreenWithTopBar(
-            jugador = fakeJugador,
-            context = LocalContext.current,
-            viewModel = fakeViewModel,
-            onGameFinished = {}
-        )
-    }
-}*/
     val repository = JugadorRepository() // Usamos el repositorio real que conecta con Firebase
     val factory = JugadorViewModelFactory(repository)
     val viewModel = factory.create(JugadorViewModel::class.java)

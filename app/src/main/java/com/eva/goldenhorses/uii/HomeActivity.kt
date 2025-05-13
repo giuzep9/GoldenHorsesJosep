@@ -57,12 +57,17 @@ import android.content.pm.PackageManager
 import android.location.Geocoder
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.core.app.ActivityCompat
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import androidx.compose.ui.res.stringResource
-import com.eva.goldenhorses.ui.RankingActivity
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import com.eva.goldenhorses.uii.RankingActivity
 import com.eva.goldenhorses.utils.aplicarIdioma
 import com.eva.goldenhorses.utils.obtenerIdioma
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 class HomeActivity : ComponentActivity() {
@@ -247,6 +252,10 @@ fun HomeScreen(
 ) {
     val partidas = jugador?.partidas ?: 0
     val victorias = jugador?.victorias ?: 0
+    val hoy = remember {
+        SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+    }
+    val victoriasHoy = jugador?.victoriasPorDia?.get(hoy) ?: 0
     val nombreJugador = jugador?.nombre ?: "Cargando..."
     val context = LocalContext.current
     val idioma = obtenerIdioma(context)
@@ -267,7 +276,7 @@ fun HomeScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 70.dp),
+                .padding(top = 30.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Image(
@@ -281,10 +290,16 @@ fun HomeScreen(
 
             Text(
                 text = nombreJugador,
-                fontSize = 50.sp,
+                fontSize = 36.sp,
+                lineHeight = 30.sp,
                 color = Color.Black,
                 fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(10.dp)
+                modifier = Modifier
+                    .padding(10.dp)
+                    .fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis
             )
 
             Text(
@@ -296,9 +311,15 @@ fun HomeScreen(
                 text = "${stringResource(R.string.victorias)}: $victorias",
                 fontSize = 18.sp,
                 color = Color.Black,
-                modifier = Modifier.padding(bottom = 32.dp)
+                modifier = Modifier.padding(bottom = 0.dp)
             )
 
+            Text(
+                text = "${stringResource(R.string.victoriasDiarias)}: $victoriasHoy",
+                fontSize = 18.sp,
+                color = Color.Black,
+                modifier = Modifier.padding(bottom = 50.dp)
+            )
 
             Column(
                 modifier = Modifier
@@ -333,7 +354,7 @@ fun HomeScreen(
 @Composable
 fun PreviewHomeScreenWithTopBar() {
     val fakeJugador = Jugador(
-        nombre = "JugadorDemo",
+        nombre = "Jordi Cañadillas Castells",
         monedas = 100,
         partidas = 10,
         victorias = 4,

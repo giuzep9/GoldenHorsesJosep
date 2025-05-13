@@ -9,34 +9,28 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
-import java.util.Calendar
 import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
-
-
-
+import java.util.*
 
 class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.getInstance()) {
 
+    /** Inserta jugador en Realtime Database para que Retrofit lo pueda consumir */
     fun insertarJugadorEnRealtime(jugador: Jugador): Completable {
         return Completable.create { emitter ->
+            val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+            val victoriasHoy = jugador.victoriasPorDia[fechaHoy] ?: 0
+
             val victoriaData = mapOf(
                 "nombre" to jugador.nombre,
-                "victoriasHoy" to jugador.victorias // Asegúrate de pasar el número de victorias
+                "victoriasHoy" to victoriasHoy //
             )
 
             val dbRealtime = FirebaseDatabase.getInstance().reference
             dbRealtime.child("ranking").child(jugador.nombre).setValue(victoriaData)
-                .addOnSuccessListener {
-                    emitter.onComplete() // Completa el Completable si la tarea fue exitosa
-                }
-                .addOnFailureListener { e ->
-                    emitter.onError(e) // Propaga el error en caso de fallo
-                }
+                .addOnSuccessListener { emitter.onComplete() }
+                .addOnFailureListener { emitter.onError(it) }
         }
     }
-
 
     fun insertarJugador(jugador: Jugador): Completable {
         return Completable.create { emitter ->
@@ -47,99 +41,71 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
                 "victorias" to jugador.victorias,
                 "palo" to jugador.palo,
                 "latitud" to jugador.latitud,
-                "longitud" to jugador.longitud
+                "longitud" to jugador.longitud,
+                "victoriasPorDia" to jugador.victoriasPorDia
             )
 
-            db.collection("jugadores")
-                .document(jugador.nombre)
-                .set(jugadorMap)
+            db.collection("jugadores").document(jugador.nombre).set(jugadorMap)
                 .addOnSuccessListener {
-                    // Inserta también en Realtime Database después de Firestore
                     insertarJugadorEnRealtime(jugador)
-                        .subscribe(
-                            { emitter.onComplete() }, // Completa el Completable
-                            { e -> emitter.onError(e) }  // Propaga el error si ocurre
-                        )
+                        .subscribe({ emitter.onComplete() }, { emitter.onError(it) })
                 }
-                .addOnFailureListener { e ->
-                    emitter.onError(e) // Propaga el error de Firestore
-                }
+                .addOnFailureListener { emitter.onError(it) }
         }
     }
 
-
-
-
     fun obtenerJugador(nombre: String): Maybe<Jugador> {
         return Maybe.create { emitter ->
-            db.collection("jugadores")
-                .document(nombre)
-                .get()
+            db.collection("jugadores").document(nombre).get()
                 .addOnSuccessListener { doc ->
-                    doc.toObject(Jugador::class.java)?.let {
-                        emitter.onSuccess(it)
-                    } ?: emitter.onComplete()
+                    doc.toObject(Jugador::class.java)?.let { emitter.onSuccess(it) } ?: emitter.onComplete()
                 }
-                .addOnFailureListener { e -> emitter.onError(e) }
+                .addOnFailureListener { emitter.onError(it) }
         }
     }
 
     fun actualizarJugador(jugador: Jugador): Completable {
-        return insertarJugador(jugador) // Reutilizamos el mismo método
+        return insertarJugador(jugador) // Reutiliza el mismo método
     }
 
     fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
         return Completable.create { emitter ->
-            db.collection("jugadores")
-                .document(nombre)
+            db.collection("jugadores").document(nombre)
                 .update(mapOf("latitud" to lat, "longitud" to lon))
                 .addOnSuccessListener { emitter.onComplete() }
-                .addOnFailureListener { e -> emitter.onError(e) }
+                .addOnFailureListener { emitter.onError(it) }
         }
     }
 
-
     fun actualizarMonedas(nombreJugador: String, cantidad: Int, onComplete: (Boolean) -> Unit) {
-        val db = FirebaseFirestore.getInstance()
-        val jugadoresRef = db.collection("jugadores")
-
-        jugadoresRef.whereEqualTo("nombre", nombreJugador)
-            .limit(1)
-            .get()
+        db.collection("jugadores").whereEqualTo("nombre", nombreJugador).limit(1).get()
             .addOnSuccessListener { querySnapshot ->
-                val documento = querySnapshot.documents.firstOrNull()
-                if (documento != null) {
-                    val jugador = documento.toObject(Jugador::class.java)
+                val doc = querySnapshot.documents.firstOrNull()
+                if (doc != null) {
+                    val jugador = doc.toObject(Jugador::class.java)
                     val nuevasMonedas = (jugador?.monedas ?: 0) + cantidad
-                    documento.reference.update("monedas", nuevasMonedas)
+                    doc.reference.update("monedas", nuevasMonedas)
                         .addOnSuccessListener { onComplete(true) }
                         .addOnFailureListener { onComplete(false) }
-                } else {
-                    onComplete(false)
-                }
+                } else onComplete(false)
             }
-            .addOnFailureListener {
-                onComplete(false)
-            }
+            .addOnFailureListener { onComplete(false) }
     }
+
+    /** Guarda una victoria con timestamp para cálculo diario */
     fun registrarVictoria(nombreJugador: String) {
         val jugadorRef = db.collection("jugadores").document(nombreJugador)
-        val victoriaData = mapOf(
-            "fecha" to Timestamp.now() // Guardamos el timestamp de la victoria
-        )
+        val victoriaData = mapOf("fecha" to Timestamp.now())
 
-        // Añadimos una victoria al jugador
-        jugadorRef.collection("victorias")
-            .add(victoriaData)
+        jugadorRef.collection("victorias").add(victoriaData)
             .addOnSuccessListener {
                 Log.d("Firebase", "Victoria registrada para $nombreJugador")
             }
-            .addOnFailureListener { e ->
-                Log.e("Firebase", "Error al registrar victoria", e)
-            }
+            .addOnFailureListener { Log.e("Firebase", "Error al registrar victoria", it) }
     }
+
+    /** Cuenta las victorias del día de un jugador */
     fun contarVictoriasHoy(nombre: String, onResult: (Int) -> Unit) {
-        val jugadorRef = db.collection("jugadores").document(nombre)
         val hoy = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
@@ -147,60 +113,52 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
             set(Calendar.MILLISECOND, 0)
         }.time
 
-        // Contamos las victorias del día para ese jugador
-        jugadorRef.collection("victorias")
+        db.collection("jugadores").document(nombre)
+            .collection("victorias")
             .whereGreaterThanOrEqualTo("fecha", Timestamp(hoy))
             .get()
-            .addOnSuccessListener { snapshot ->
-                onResult(snapshot.size()) // El tamaño del snapshot nos da la cantidad de victorias
-            }
-            .addOnFailureListener {
-                onResult(0) // Si hay error, devolvemos 0 victorias
-            }
+            .addOnSuccessListener { snapshot -> onResult(snapshot.size()) }
+            .addOnFailureListener { onResult(0) }
     }
+
+    /** Genera ranking del día desde subcolección "victoriasPorDia" */
     fun obtenerRankingDelDia(callback: (List<JugadorRanking>) -> Unit) {
         val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-        val db = FirebaseFirestore.getInstance()
         val rankingList = mutableListOf<JugadorRanking>()
 
-        db.collection("jugadores").get().addOnSuccessListener { jugadoresSnapshot ->
-            val total = jugadoresSnapshot.size()
+        db.collection("jugadores").get().addOnSuccessListener { snapshot ->
             var procesados = 0
+            val total = snapshot.size()
 
-            for (jugadorDoc in jugadoresSnapshot) {
+            snapshot.forEach { jugadorDoc ->
                 val nombre = jugadorDoc.id
-
                 jugadorDoc.reference.collection("victoriasPorDia")
                     .document(fechaHoy)
                     .get()
                     .addOnSuccessListener { docDia ->
                         val victoriasHoy = docDia.getLong("victorias")?.toInt() ?: 0
-                        if (victoriasHoy > 0) {
-                            rankingList.add(JugadorRanking(nombre, victoriasHoy))
-                        }
-
+                        if (victoriasHoy > 0) rankingList.add(JugadorRanking(nombre, victoriasHoy))
                         procesados++
-                        if (procesados == total) {
-                            // Ordenar por victorias descendente
-                            callback(rankingList.sortedByDescending { it.victoriasHoy })
-                        }
+                        if (procesados == total) callback(rankingList.sortedByDescending { it.victoriasHoy })
+                    }
+                    .addOnFailureListener {
+                        procesados++
+                        if (procesados == total) callback(rankingList.sortedByDescending { it.victoriasHoy })
                     }
             }
         }
     }
 
+    /** Premia automáticamente con monedas si es el primer lugar del ranking */
     fun premiarSiEsPrimerLugar(ranking: List<JugadorRanking>, jugadorActual: String) {
-        if (ranking.isNotEmpty() && ranking[0].nombre == jugadorActual) {
-            // Premiar con 120 monedas
-            actualizarMonedas(jugadorActual, 120) { exito ->
-                if (exito) {
-                    Log.d("Premio", "¡Felicidades! Has ganado 120 monedas.")
-                }
+        if (ranking.isNotEmpty() && ranking.first().nombre == jugadorActual) {
+            actualizarMonedas(jugadorActual, 120) {
+                if (it) Log.d("Premio", "120 monedas otorgadas a $jugadorActual")
             }
         }
     }
-
 }
+
 
 
 

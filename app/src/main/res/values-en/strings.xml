@@ -4,6 +4,7 @@
     <string name="introduce_nombre">You must enter your username</string>
     <string name="numero_partidas">Games played</string>
     <string name="victorias">Wins</string>
+    <string name="victoriasDiarias">Daily wins</string>
     <string name="select_your_horse">Select your horse</string>
     <string name="your_bet">Your bet:</string>
     <string name="select_horse_toast">Select your horse</string>

@@ -32,4 +32,11 @@ data class Jugador(
         }
         apuesta = null
     }
+
+    fun registrarVictoriaDiaria() {
+        val hoy = java.time.LocalDate.now().toString() // Ej: "2025-05-12"
+        val nuevasVictorias = victoriasPorDia.toMutableMap()
+        nuevasVictorias[hoy] = (nuevasVictorias[hoy] ?: 0) + 1
+        victoriasPorDia = nuevasVictorias
+    }
 }

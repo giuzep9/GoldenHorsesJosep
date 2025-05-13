@@ -3,11 +3,12 @@ package com.eva.goldenhorses.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eva.goldenhorses.model.JugadorRanking
-import com.eva.goldenhorses.network.ApiClient
-import com.google.firebase.auth.FirebaseAuth
+import com.eva.goldenhorses.network.RetrofitService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 
 class RankingViewModel : ViewModel() {
 
@@ -18,69 +19,26 @@ class RankingViewModel : ViewModel() {
     val error: StateFlow<String?> = _error
 
     init {
-        cargarRanking()
+        cargarRankingDeHoy()
     }
 
-    fun cargarRanking() {
-        val usuario = FirebaseAuth.getInstance().currentUser
-
-        if (usuario == null) {
-            _error.value = "Usuario no autenticado"
-            return
+    private fun cargarRankingDeHoy() {
+        viewModelScope.launch {
+            try {
+                val fechaHoy = obtenerFechaHoy()
+                val response = RetrofitService.api.getRankingPorFecha(fechaHoy)
+                val lista = response.values.sortedByDescending { it.victoriasHoy }
+                _ranking.value = lista
+            } catch (e: Exception) {
+                _error.value = "Error al cargar el ranking: ${e.localizedMessage}"
+            }
         }
+    }
 
-        usuario.getIdToken(true)
-            .addOnSuccessListener { result ->
-                val token = result.token ?: ""
-                viewModelScope.launch {
-                    try {
-                        val resultado = ApiClient.rankingApi.obtenerRanking(token)
-                        _ranking.value = resultado.values.sortedByDescending { it.victoriasHoy }
-
-                        _error.value = null
-                    } catch (e: Exception) {
-                        _error.value = "Error al cargar ranking: ${e.message}"
-                    }
-                }
-            }
-            .addOnFailureListener {
-                _error.value = "Error al obtener token de Firebase"
-            }
+    private fun obtenerFechaHoy(): String {
+        val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
+        return dateFormat.format(Date())
     }
 }
 
 
-/*package com.eva.goldenhorses.viewmodel
-
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
-import com.eva.goldenhorses.model.JugadorRanking
-import com.eva.goldenhorses.network.ApiClient
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
-
-class RankingViewModel : ViewModel() {
-
-    private val _ranking = MutableStateFlow<List<JugadorRanking>>(emptyList())
-    val ranking: StateFlow<List<JugadorRanking>> = _ranking
-
-    private val _error = MutableStateFlow<String?>(null)
-    val error: StateFlow<String?> = _error
-
-    init {
-        cargarRanking()
-    }
-
-    fun cargarRanking() {
-        viewModelScope.launch {
-            try {
-                val resultado = ApiClient.rankingApi.obtenerRanking()
-                _ranking.value = resultado.sortedByDescending { it.victoriasHoy }
-                _error.value = null
-            } catch (e: Exception) {
-                _error.value = "Error al cargar ranking: ${e.message}"
-            }
-        }
-    }
-}*/
