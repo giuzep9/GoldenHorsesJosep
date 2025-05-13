@@ -18,23 +18,37 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
     fun insertarJugadorEnRealtime(jugador: Jugador): Completable {
         return Completable.create { emitter ->
             val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-            val victoriasHoy = jugador.victoriasPorDia[fechaHoy] ?: 0
 
-            val victoriaData = mapOf(
-                "nombre" to jugador.nombre,
-                "victoriasHoy" to victoriasHoy
-            )
+            // Usa la subcolección de Firestore para obtener el número real de victorias del día
+            val dbFirestore = FirebaseFirestore.getInstance()
+            val uid = jugador.nombre // o FirebaseAuth.getInstance().currentUser?.uid
 
-            val dbRealtime = FirebaseDatabase.getInstance().reference
-            dbRealtime
-                .child("ranking")
-                .child(fechaHoy) // ahora se guarda por día
-                .child(jugador.nombre)
-                .setValue(victoriaData)
-                .addOnSuccessListener { emitter.onComplete() }
+            dbFirestore.collection("jugadores")
+                .document(uid)
+                .collection("victoriasPorDia")
+                .document(fechaHoy)
+                .get()
+                .addOnSuccessListener { document ->
+                    val victoriasHoy = document.getLong("victorias")?.toInt() ?: 0
+
+                    val jugadorRanking = JugadorRanking(
+                        nombre = jugador.nombre,
+                        victoriasHoy = victoriasHoy
+                    )
+
+                    val dbRealtime = FirebaseDatabase.getInstance().reference
+                    dbRealtime
+                        .child("ranking")
+                        .child(fechaHoy)
+                        .child(jugador.nombre)
+                        .setValue(jugadorRanking)
+                        .addOnSuccessListener { emitter.onComplete() }
+                        .addOnFailureListener { emitter.onError(it) }
+                }
                 .addOnFailureListener { emitter.onError(it) }
         }
     }
+
 
     fun insertarJugador(jugador: Jugador): Completable {
         return Completable.create { emitter ->
