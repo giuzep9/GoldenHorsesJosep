@@ -22,11 +22,15 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
 
             val victoriaData = mapOf(
                 "nombre" to jugador.nombre,
-                "victoriasHoy" to victoriasHoy //
+                "victoriasHoy" to victoriasHoy
             )
 
             val dbRealtime = FirebaseDatabase.getInstance().reference
-            dbRealtime.child("ranking").child(jugador.nombre).setValue(victoriaData)
+            dbRealtime
+                .child("ranking")
+                .child(fechaHoy) // ahora se guarda por día
+                .child(jugador.nombre)
+                .setValue(victoriaData)
                 .addOnSuccessListener { emitter.onComplete() }
                 .addOnFailureListener { emitter.onError(it) }
         }

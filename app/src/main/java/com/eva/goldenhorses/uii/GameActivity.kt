@@ -227,10 +227,9 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                 // Realtime Database para ranking diario
                 val repository = JugadorRepository()
                 repository.insertarJugadorEnRealtime(jugador).subscribe({}, {})
+                viewModel.actualizarJugador(jugador)
             }
 
-
-            viewModel.actualizarJugador(jugador)
             onGameFinished()
 
             val intent = if (jugador.palo == ganador) {

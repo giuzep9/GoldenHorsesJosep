@@ -90,13 +90,10 @@ dependencies {
 // Moshi con soporte para Kotlin
     implementation ("com.squareup.moshi:moshi-kotlin:1.15.0")
 
-
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
+    
 // Dependencias para Google Sign-In y Firebase Authentication
    // implementation ("com.google.android.gms:play-services-auth:20.0.1")
    // implementation ("com.google.firebase:firebase-auth:21.0.0")
-
-
-
-
 
 }

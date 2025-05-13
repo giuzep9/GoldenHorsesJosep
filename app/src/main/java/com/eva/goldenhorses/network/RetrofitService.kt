@@ -14,17 +14,10 @@ object RetrofitService {
         .addLast(KotlinJsonAdapterFactory())
         .build()
 
-    // 🔐 Cliente con interceptor de FirebaseAuth
-    private val client = OkHttpClient.Builder()
-        .addInterceptor(FirebaseAuthInterceptor())
-        .build()
-
     private val retrofit: Retrofit = Retrofit.Builder()
         .baseUrl(BASE_URL)
-        .client(client)
         .addConverterFactory(MoshiConverterFactory.create(moshi))
         .build()
 
     val api: FirebaseApi = retrofit.create(FirebaseApi::class.java)
 }
-
