@@ -4,6 +4,7 @@ import android.util.Log
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.model.JugadorRanking
 import com.google.firebase.Timestamp
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.database.FirebaseDatabase
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Query
@@ -37,6 +38,9 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
     }
 
     fun insertarJugador(jugador: Jugador): Completable {
+        val userId = FirebaseAuth.getInstance().currentUser?.uid
+        if (userId == null) return Completable.error(Throwable("Usuario no autenticado"))
+
         return Completable.create { emitter ->
             val jugadorMap = mapOf(
                 "nombre" to jugador.nombre,
@@ -49,7 +53,7 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
                 "victoriasPorDia" to jugador.victoriasPorDia
             )
 
-            db.collection("jugadores").document(jugador.nombre).set(jugadorMap)
+            db.collection("jugadores").document(userId).set(jugadorMap)
                 .addOnSuccessListener {
                     insertarJugadorEnRealtime(jugador)
                         .subscribe({ emitter.onComplete() }, { emitter.onError(it) })
@@ -58,11 +62,38 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
         }
     }
 
-    fun obtenerJugador(nombre: String): Maybe<Jugador> {
+    fun insertarJugadorConUID(uid: String, jugador: Jugador): Completable {
+        return Completable.create { emitter ->
+            db.collection("jugadores").document(uid)
+                .set(jugador)
+                .addOnSuccessListener { emitter.onComplete() }
+                .addOnFailureListener { emitter.onError(it) }
+        }
+    }
+
+    fun obtenerJugador(): Maybe<Jugador> {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+            ?: return Maybe.error(IllegalStateException("Usuario no autenticado"))
+
         return Maybe.create { emitter ->
-            db.collection("jugadores").document(nombre).get()
+            db.collection("jugadores").document(uid).get()
                 .addOnSuccessListener { doc ->
-                    doc.toObject(Jugador::class.java)?.let { emitter.onSuccess(it) } ?: emitter.onComplete()
+                    doc.toObject(Jugador::class.java)?.let {
+                        emitter.onSuccess(it)
+                    } ?: emitter.onComplete()
+                }
+                .addOnFailureListener { emitter.onError(it) }
+        }
+    }
+
+    fun obtenerJugadorPorUID(uid: String): Maybe<Jugador> {
+        return Maybe.create { emitter ->
+            db.collection("jugadores").document(uid)
+                .get()
+                .addOnSuccessListener { doc ->
+                    val jugador = doc.toObject(Jugador::class.java)
+                    if (jugador != null) emitter.onSuccess(jugador)
+                    else emitter.onComplete()
                 }
                 .addOnFailureListener { emitter.onError(it) }
         }

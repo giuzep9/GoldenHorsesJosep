@@ -3,6 +3,7 @@ package com.eva.goldenhorses.uii
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -25,13 +26,17 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.model.JugadorRanking
+import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
 import com.eva.goldenhorses.utils.obtenerIdioma
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
+import com.eva.goldenhorses.viewmodel.JugadorViewModel
+import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
 import com.eva.goldenhorses.viewmodel.RankingViewModel
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
@@ -40,13 +45,23 @@ import java.text.SimpleDateFormat
 import java.util.*
 
 class RankingActivity : ComponentActivity() {
+
     private val rankingViewModel by viewModels<RankingViewModel>()
+
+    private val jugadorViewModel by viewModels<JugadorViewModel> {
+        JugadorViewModelFactory(JugadorRepository())
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
             GoldenHorsesTheme {
-                RankingScreenWithTopBar(viewModel = rankingViewModel, context = this)
+                // Pasa ambos ViewModels a la pantalla
+                RankingScreenWithTopBar(
+                    viewModel = rankingViewModel,
+                    jugadorViewModel = jugadorViewModel,
+                    context = this
+                )
             }
         }
     }
@@ -54,30 +69,27 @@ class RankingActivity : ComponentActivity() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RankingScreenWithTopBar(viewModel: RankingViewModel, context: Context) {
+fun RankingScreenWithTopBar(
+    viewModel: RankingViewModel,
+    jugadorViewModel: JugadorViewModel,
+    context: Context
+) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
 
+    val jugador by jugadorViewModel.jugador.collectAsState()
     val nombreJugador = SessionManager.obtenerJugador(context)
-    val ranking by viewModel.ranking.collectAsState()
 
-    // Jugador simulado con lat/lon (necesario para AppTopBar)
-    val jugador = ranking.find { it.nombre == nombreJugador }?.let {
-        Jugador(
-            nombre = it.nombre,
-            victorias = 0,
-            partidas = 0,
-            palo = "Oros",
-            monedas = 0,
-            latitud = 43.2630,
-            longitud = -2.9350
-        )
+    LaunchedEffect(nombreJugador) {
+        jugadorViewModel.iniciarSesion(nombreJugador)
     }
 
     val pais = remember(jugador) {
-        if (jugador?.latitud != null && jugador.longitud != null) {
-            obtenerPaisDesdeUbicacion(context, jugador.latitud!!, jugador.longitud!!)
-        } else null
+        jugador?.latitud?.let { lat ->
+            jugador?.longitud?.let { lon ->
+                obtenerPaisDesdeUbicacion(context, lat, lon)
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -99,30 +111,40 @@ fun RankingScreenWithTopBar(viewModel: RankingViewModel, context: Context) {
             )
         }
     ) { paddingValues ->
-        Box(modifier = Modifier
-            .fillMaxSize()
-            .padding(paddingValues)) {
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
             RankingScreen(viewModel)
         }
     }
 }
 
+
 @Composable
 fun RankingScreen(viewModel: RankingViewModel) {
-    val ranking by viewModel.ranking.collectAsState()
-    val error by viewModel.error.collectAsState()
     val context = LocalContext.current
     val idioma = obtenerIdioma(context)
-    val topJugador = ranking.maxByOrNull { it.victoriasHoy }
     val jugadorActual = FirebaseAuth.getInstance().currentUser
     val prefs = context.getSharedPreferences("premios", Context.MODE_PRIVATE)
-    val calendarioAyer = Calendar.getInstance().apply {
-        add(Calendar.DAY_OF_YEAR, -1)
-    }
+
+    val calendarioAyer = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }
     val fechaAyer = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendarioAyer.time)
     val clavePremio = "premio_dado_$fechaAyer"
     var premioReclamado by remember { mutableStateOf(prefs.getBoolean(clavePremio, false)) }
-    val puedeReclamar = topJugador?.nombre == jugadorActual?.displayName && !premioReclamado
+    var topJugadorDeAyer by remember { mutableStateOf<JugadorRanking?>(null) }
+
+    LaunchedEffect(Unit) {
+        viewModel.cargarRankingDeAyer { top ->
+            topJugadorDeAyer = top
+        }
+    }
+
+    val puedeReclamar = topJugadorDeAyer?.nombre == jugadorActual?.displayName && !premioReclamado
+
+    val ranking by viewModel.ranking.collectAsState()
+    val error by viewModel.error.collectAsState()
 
     if (error != null) {
         Toast.makeText(context, error, Toast.LENGTH_SHORT).show()
@@ -132,31 +154,6 @@ fun RankingScreen(viewModel: RankingViewModel) {
     val botonReclamarPremio = if (idioma == "en") R.drawable.collect_prize else R.drawable.recoger_premio
 
     Box(modifier = Modifier.fillMaxSize()) {
-
-        if (puedeReclamar) {
-            Image(
-                painter = painterResource(id = botonReclamarPremio),
-                contentDescription = "Botón Obtener Premio",
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .size(width = 200.dp, height = 64.dp)
-                    .clickable {
-                        val jugadorActual = FirebaseAuth.getInstance().currentUser
-                        if (!premioReclamado) {
-                            if (jugadorActual != null && topJugador?.nombre == jugadorActual.displayName) {
-                                reclamarPremio(context)
-                                prefs.edit().putBoolean(clavePremio, true).apply()
-                                premioReclamado = true
-                            } else {
-                                Toast.makeText(context, "No eres el jugador con más victorias.", Toast.LENGTH_SHORT).show()
-                            }
-                        } else {
-                            Toast.makeText(context, "Ya has reclamado el premio hoy.", Toast.LENGTH_SHORT).show()
-                        }
-                    }
-            )
-        }
-
 
         Image(
             painter = painterResource(id = R.drawable.fondo_ranking),
@@ -185,6 +182,41 @@ fun RankingScreen(viewModel: RankingViewModel) {
                     items(ranking) { jugador ->
                         RankingItem(jugador)
                     }
+                }
+
+                if (puedeReclamar) {
+                    Log.d("PREMIO", "Mostrando botón porque puede reclamar")
+                    Image(
+                        painter = painterResource(id = botonReclamarPremio),
+                        contentDescription = "Botón Obtener Premio",
+                        modifier = Modifier
+                            .padding(bottom = 100.dp) // justo encima del botón de volver
+                            .size(width = 200.dp, height = 64.dp)
+                            .zIndex(1f)                 // prioridad visual por encima de fondo
+                            .clickable {
+                                val jugadorActual = FirebaseAuth.getInstance().currentUser
+                                if (!premioReclamado && jugadorActual != null && topJugadorDeAyer?.nombre == jugadorActual.displayName) {
+                                    reclamarPremio(context)
+                                    prefs.edit().putBoolean(clavePremio, true).apply()
+                                    premioReclamado = true
+                                } else {
+                                    Toast.makeText(context, "Ya has reclamado el premio hoy.", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                    )
+                }
+
+                // 🔧 Solo para pruebas: botón para resetear clave y volver a ver el botón de premio
+                Button(
+                    onClick = {
+                        prefs.edit().remove(clavePremio).apply()
+                        premioReclamado = false
+                        Toast.makeText(context, "Clave $clavePremio eliminada", Toast.LENGTH_SHORT).show()
+                    },
+                    modifier = Modifier
+                        .padding(top = 80.dp) // Ajusta para que no se solape
+                ) {
+                    Text(text = "Reset Premio (debug)")
                 }
 
                 Image(
@@ -230,12 +262,27 @@ private fun reclamarPremio(context: Context) {
 
     if (userId != null) {
         val jugadorRef = db.collection("jugadores").document(userId)
-        jugadorRef.update("monedas", FieldValue.increment(120))
-            .addOnSuccessListener {
-                Toast.makeText(context, "¡Premio de 120 monedas obtenido!", Toast.LENGTH_SHORT).show()
+
+        jugadorRef.get()
+            .addOnSuccessListener { document ->
+                if (document.exists()) {
+                    jugadorRef.update("monedas", FieldValue.increment(120))
+                        .addOnSuccessListener {
+                            Log.d("PREMIO", "Premio añadido a $userId")
+                            Toast.makeText(context, "¡Premio de 120 monedas obtenido!", Toast.LENGTH_SHORT).show()
+                        }
+                        .addOnFailureListener { e ->
+                            Log.e("PREMIO", "Error al actualizar monedas: ${e.message}", e)
+                            Toast.makeText(context, "Error al reclamar el premio.", Toast.LENGTH_SHORT).show()
+                        }
+                } else {
+                    Log.e("PREMIO", "Documento del jugador no existe: $userId")
+                    Toast.makeText(context, "Jugador no encontrado en la base de datos.", Toast.LENGTH_SHORT).show()
+                }
             }
-            .addOnFailureListener {
-                Toast.makeText(context, "Error al reclamar el premio.", Toast.LENGTH_SHORT).show()
+            .addOnFailureListener { e ->
+                Log.e("PREMIO", "Error al acceder a Firestore: ${e.message}", e)
+                Toast.makeText(context, "Error al conectar con la base de datos.", Toast.LENGTH_SHORT).show()
             }
     }
 }
@@ -289,9 +336,18 @@ fun PreviewRankingScreenWithTopBar() {
                     }
                 }
 
+                // Simular botón de premio en el preview
+                Image(
+                    painter = painterResource(id = R.drawable.recoger_premio),
+                    contentDescription = "Botón Recoger Premio",
+                    modifier = Modifier
+                        .padding(16.dp)
+                        .size(width = 200.dp, height = 64.dp)
+                )
+
                 Image(
                     painter = painterResource(id = R.drawable.volver_inicio),
-                    contentDescription = "Botón Obtener Premio",
+                    contentDescription = "Botón Volver a Inicio",
                     modifier = Modifier
                         .padding(top = 16.dp)
                         .size(width = 200.dp, height = 64.dp)

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.eva.goldenhorses.model.JugadorRanking
 import com.eva.goldenhorses.network.RetrofitService
+import com.google.firebase.auth.FirebaseAuth
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -53,9 +54,38 @@ class RankingViewModel : ViewModel() {
         }
     }
 
+    fun cargarRankingDeAyer(onTopJugadorObtenido: (JugadorRanking?) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val ayer = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, -1) }.time
+                val fechaAyer = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(ayer)
+                val user = FirebaseAuth.getInstance().currentUser
+                val token = user?.getIdToken(false)?.await()?.token
+                if (token != null) {
+                    val response = RetrofitService.api.getRankingPorFecha(fechaAyer, token)
+                    val lista = response.values.sortedByDescending { it.victoriasHoy }
+                    val topJugador = lista.firstOrNull()
+                    onTopJugadorObtenido(topJugador)
+                } else {
+                    _error.value = "Token inválido"
+                    onTopJugadorObtenido(null)
+                }
+            } catch (e: Exception) {
+                _error.value = "Error al cargar ranking de ayer: ${e.message}"
+                onTopJugadorObtenido(null)
+            }
+        }
+    }
+
+
     private fun obtenerFechaHoy(): String {
         val dateFormat = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault())
         return dateFormat.format(Date())
+    }
+
+    private fun obtenerFecha(offsetDias: Int): String {
+        val calendar = Calendar.getInstance().apply { add(Calendar.DAY_OF_YEAR, offsetDias) }
+        return SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(calendar.time)
     }
 }
 

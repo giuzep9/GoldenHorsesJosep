@@ -188,7 +188,7 @@ fun PlayerSelectionScreenWithTopBar(
             viewModel = viewModel,
             onPlayerSelected = { nombre, palo ->
 
-                val disposable = viewModel.repository.obtenerJugador(nombre)
+                val disposable = viewModel.repository.obtenerJugador()
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe({ jugadorExistente ->
@@ -342,7 +342,7 @@ fun PlayerSelectionScreen(
                                 Toast.LENGTH_SHORT
                             ).show()
                         } else {
-                            val disposable = viewModel.repository.obtenerJugador(nombreJugador)
+                            val disposable = viewModel.repository.obtenerJugador()
                                 .subscribeOn(Schedulers.io())
                                 .observeOn(AndroidSchedulers.mainThread())
                                 .subscribe({ jugadorExistente ->

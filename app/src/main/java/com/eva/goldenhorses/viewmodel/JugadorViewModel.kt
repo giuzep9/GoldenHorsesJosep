@@ -5,6 +5,7 @@ import android.location.Geocoder
 import androidx.lifecycle.ViewModel
 import com.eva.goldenhorses.model.Jugador
 import com.eva.goldenhorses.repository.JugadorRepository
+import com.google.firebase.auth.FirebaseAuth
 import io.reactivex.rxjava3.android.schedulers.AndroidSchedulers
 import io.reactivex.rxjava3.disposables.CompositeDisposable
 import io.reactivex.rxjava3.schedulers.Schedulers
@@ -23,20 +24,39 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
 
     // Esta función inicia sesión, obteniendo el jugador o creándolo si no existe
     fun iniciarSesion(nombre: String) {
-        val disposable = repository.obtenerJugador(nombre)
+        val disposable = repository.obtenerJugador()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ jugadorExistente ->
-                // Si el jugador existe, lo seteamos
                 _jugador.value = jugadorExistente
             }, { error ->
-                // Si ocurre un error al obtener el jugador, se imprime el error
                 error.printStackTrace()
             }, {
-                // Si el jugador no existe, creamos uno nuevo con los valores iniciales
-                val nuevo = Jugador(nombre, 100, 0, 0, "Oros")
+                // Si no existe, lo creamos con el UID
+                val nuevo = Jugador(nombre = nombre)
                 insertarJugador(nuevo)
                 _jugador.value = nuevo
+            })
+        disposables.add(disposable)
+    }
+
+    fun iniciarSesionConUID(uid: String) {
+        val disposable = repository.obtenerJugadorPorUID(uid)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ jugadorExistente ->
+                _jugador.value = jugadorExistente
+            }, { error ->
+                error.printStackTrace()
+            }, {
+                // Si no existe, creamos uno nuevo
+                val nuevo = Jugador(nombre = FirebaseAuth.getInstance().currentUser?.displayName ?: "Anónimo")
+                repository.insertarJugadorConUID(uid, nuevo)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe({
+                        _jugador.value = nuevo
+                    }, { it.printStackTrace() })
             })
         disposables.add(disposable)
     }
@@ -69,16 +89,15 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
 
     // Esta función comprueba si un jugador existe y si no, lo inserta
     fun comprobarOInsertarJugador(nombre: String) {
-        val disposable = repository.obtenerJugador(nombre)
+        val disposable = repository.obtenerJugador()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({ jugador ->
-                // Si ya existe el jugador, no hacemos nada
+                // Ya existe, no hacer nada
             }, {
                 it.printStackTrace()
             }, {
-                // Si no existe, creamos e insertamos un nuevo jugador
-                val nuevoJugador = Jugador(nombre = nombre, monedas = 100, partidas = 0, victorias = 0)
+                val nuevoJugador = Jugador(nombre = nombre)
                 insertarJugador(nuevoJugador)
             })
         disposables.add(disposable)
