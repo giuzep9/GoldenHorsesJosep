@@ -41,6 +41,7 @@ import com.eva.goldenhorses.utils.obtenerIdioma
 import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FieldValue
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -205,9 +206,9 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                 jugador.registrarVictoriaDiaria()
 
                 val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
-                val jugadorId = jugador.nombre
+                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
                 val db = FirebaseFirestore.getInstance()
-                val docRef = db.collection("jugadores").document(jugadorId)
+                val docRef = db.collection("jugadores").document(uid)
 
                 // Historial personal en subcolección
                 docRef.collection("victoriasPorDia").document(fechaHoy)

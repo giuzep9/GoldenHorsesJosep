@@ -141,7 +141,7 @@ class HomeActivity : ComponentActivity() {
                     Log.d("UBICACION", "Lat: $lat, Lon: $lon")
 
                     // Guardar ubicación en Firebase
-                    jugadorViewModel.actualizarUbicacion(nombreJugador, lat, lon)
+                    jugadorViewModel.actualizarUbicacion( lat, lon)
                     jugadorViewModel.actualizarPaisDesdeUbicacion(this, lat, lon)
 
                     // Mostramos país con Toast

@@ -103,44 +103,55 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
         return insertarJugador(jugador) // Reutiliza el mismo método
     }
 
-    fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable {
+    fun actualizarUbicacion(lat: Double, lon: Double): Completable {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+            ?: return Completable.error(Throwable("Usuario no autenticado"))
+
         return Completable.create { emitter ->
-            db.collection("jugadores").document(nombre)
+            db.collection("jugadores").document(uid)
                 .update(mapOf("latitud" to lat, "longitud" to lon))
                 .addOnSuccessListener { emitter.onComplete() }
                 .addOnFailureListener { emitter.onError(it) }
         }
     }
 
-    fun actualizarMonedas(nombreJugador: String, cantidad: Int, onComplete: (Boolean) -> Unit) {
-        db.collection("jugadores").whereEqualTo("nombre", nombreJugador).limit(1).get()
-            .addOnSuccessListener { querySnapshot ->
-                val doc = querySnapshot.documents.firstOrNull()
-                if (doc != null) {
-                    val jugador = doc.toObject(Jugador::class.java)
-                    val nuevasMonedas = (jugador?.monedas ?: 0) + cantidad
-                    doc.reference.update("monedas", nuevasMonedas)
-                        .addOnSuccessListener { onComplete(true) }
-                        .addOnFailureListener { onComplete(false) }
-                } else onComplete(false)
+
+    fun actualizarMonedas(cantidad: Int, onComplete: (Boolean) -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid
+        if (uid == null) {
+            onComplete(false)
+            return
+        }
+
+        val jugadorRef = db.collection("jugadores").document(uid)
+        jugadorRef.get()
+            .addOnSuccessListener { doc ->
+                val jugador = doc.toObject(Jugador::class.java)
+                val nuevasMonedas = (jugador?.monedas ?: 0) + cantidad
+                jugadorRef.update("monedas", nuevasMonedas)
+                    .addOnSuccessListener { onComplete(true) }
+                    .addOnFailureListener { onComplete(false) }
             }
             .addOnFailureListener { onComplete(false) }
     }
 
+
     /** Guarda una victoria con timestamp para cálculo diario */
-    fun registrarVictoria(nombreJugador: String) {
-        val jugadorRef = db.collection("jugadores").document(nombreJugador)
+    fun registrarVictoria() {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+        val jugadorRef = db.collection("jugadores").document(uid)
         val victoriaData = mapOf("fecha" to Timestamp.now())
 
         jugadorRef.collection("victorias").add(victoriaData)
-            .addOnSuccessListener {
-                Log.d("Firebase", "Victoria registrada para $nombreJugador")
-            }
+            .addOnSuccessListener { Log.d("Firebase", "Victoria registrada") }
             .addOnFailureListener { Log.e("Firebase", "Error al registrar victoria", it) }
     }
 
+
     /** Cuenta las victorias del día de un jugador */
-    fun contarVictoriasHoy(nombre: String, onResult: (Int) -> Unit) {
+    fun contarVictoriasHoy(onResult: (Int) -> Unit) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return onResult(0)
+
         val hoy = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
             set(Calendar.MINUTE, 0)
@@ -148,13 +159,14 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
             set(Calendar.MILLISECOND, 0)
         }.time
 
-        db.collection("jugadores").document(nombre)
+        db.collection("jugadores").document(uid)
             .collection("victorias")
             .whereGreaterThanOrEqualTo("fecha", Timestamp(hoy))
             .get()
             .addOnSuccessListener { snapshot -> onResult(snapshot.size()) }
             .addOnFailureListener { onResult(0) }
     }
+
 
     /** Genera ranking del día desde subcolección "victoriasPorDia" */
     fun obtenerRankingDelDia(callback: (List<JugadorRanking>) -> Unit) {
@@ -166,7 +178,7 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
             val total = snapshot.size()
 
             snapshot.forEach { jugadorDoc ->
-                val nombre = jugadorDoc.id
+                val nombre = jugadorDoc.getString("nombre") ?: "SinNombre"
                 jugadorDoc.reference.collection("victoriasPorDia")
                     .document(fechaHoy)
                     .get()
@@ -174,20 +186,25 @@ class JugadorRepository(private val db: FirebaseFirestore = FirebaseFirestore.ge
                         val victoriasHoy = docDia.getLong("victorias")?.toInt() ?: 0
                         if (victoriasHoy > 0) rankingList.add(JugadorRanking(nombre, victoriasHoy))
                         procesados++
-                        if (procesados == total) callback(rankingList.sortedByDescending { it.victoriasHoy })
+                        if (procesados == total) {
+                            callback(rankingList.sortedByDescending { it.victoriasHoy })
+                        }
                     }
                     .addOnFailureListener {
                         procesados++
-                        if (procesados == total) callback(rankingList.sortedByDescending { it.victoriasHoy })
+                        if (procesados == total) {
+                            callback(rankingList.sortedByDescending { it.victoriasHoy })
+                        }
                     }
             }
         }
     }
 
+
     /** Premia automáticamente con monedas si es el primer lugar del ranking */
     fun premiarSiEsPrimerLugar(ranking: List<JugadorRanking>, jugadorActual: String) {
         if (ranking.isNotEmpty() && ranking.first().nombre == jugadorActual) {
-            actualizarMonedas(jugadorActual, 120) {
+            actualizarMonedas(120) {
                 if (it) Log.d("Premio", "120 monedas otorgadas a $jugadorActual")
             }
         }

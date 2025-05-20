@@ -38,6 +38,7 @@ import com.eva.goldenhorses.utils.aplicarIdioma
 import com.eva.goldenhorses.utils.guardarIdioma
 import com.eva.goldenhorses.utils.obtenerIdioma
 import com.eva.goldenhorses.utils.restartApp
+import com.google.firebase.auth.FirebaseAuth
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
 
@@ -271,12 +272,18 @@ fun LoginScreen(
                             .size(180.dp)
                             .clickable {
                                 if (nombreJugador.isNotBlank()) {
-                                    viewModel.comprobarOInsertarJugador(nombreJugador)
-                                    SessionManager.guardarJugador(context, nombreJugador)
-                                    onLoginSuccess(nombreJugador)
+                                    val currentUser = FirebaseAuth.getInstance().currentUser
+                                    if (currentUser != null) {
+                                        viewModel.comprobarOInsertarJugador(nombreJugador)
+                                        SessionManager.guardarJugador(context, nombreJugador)
+                                        onLoginSuccess(nombreJugador)
+                                    } else {
+                                        Toast.makeText(context, "Error: Usuario no autenticado", Toast.LENGTH_SHORT).show()
+                                    }
                                 } else {
                                     Toast.makeText(context, context.getString(R.string.introduce_nombre), Toast.LENGTH_SHORT).show()
                                 }
+
                             }
                     )
                 }

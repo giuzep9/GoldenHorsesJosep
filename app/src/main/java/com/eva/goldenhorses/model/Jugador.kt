@@ -5,7 +5,7 @@ import com.google.firebase.firestore.IgnoreExtraProperties
 @IgnoreExtraProperties
 data class Jugador(
     var nombre: String = "",
-    var monedas: Int = 20,
+    var monedas: Int = 100,
     var partidas: Int = 0,
     var victorias: Int = 0, // ← victorias generales
     var palo: String = "Oros",

@@ -21,7 +21,16 @@ class GoogleAuthRepository(
         }
     }
 
-    fun firebaseAuthWithGoogle(idToken: String, monedas: Int, partidas: Int, victorias: Int, palo: String, latitud: Double?, longitud: Double?, onResult: (Boolean, String?) -> Unit) {
+    fun firebaseAuthWithGoogle(
+        idToken: String,
+        monedas: Int,
+        partidas: Int,
+        victorias: Int,
+        palo: String,
+        latitud: Double?,
+        longitud: Double?,
+        onResult: (Boolean, String?) -> Unit
+    ) {
         val credential = GoogleAuthProvider.getCredential(idToken, null)
         auth.signInWithCredential(credential)
             .addOnCompleteListener { task ->
@@ -29,7 +38,15 @@ class GoogleAuthRepository(
                     val userName = auth.currentUser?.displayName
                     if (userName != null) {
                         // Verifica si el jugador existe en Firestore y actualiza los datos
-                        guardarJugadorEnFirestore(userName, monedas, partidas, victorias, palo, latitud, longitud)
+                        guardarJugadorEnFirestore(
+                            userName,
+                            monedas,
+                            partidas,
+                            victorias,
+                            palo,
+                            latitud,
+                            longitud
+                        )
                     }
                     onResult(true, userName)
                 } else {
@@ -47,33 +64,35 @@ class GoogleAuthRepository(
         latitud: Double?,
         longitud: Double?
     ) {
-        val userId = auth.currentUser?.uid ?: return // Asegura que no es null
+        val userId = auth.currentUser?.uid ?: return
         val jugadorRef = db.collection("jugadores").document(userId)
 
-        val datosBase = mapOf(
-            "nombre" to nombre,
-            "monedas" to monedas,
-            "partidas" to partidas,
-            "victorias" to victorias,
-            "palo" to palo,
-            "latitud" to latitud,
-            "longitud" to longitud,
-            "victoriasPorDia" to emptyMap<String, Int>()
-        )
-
         jugadorRef.get().addOnSuccessListener { document ->
-            jugadorRef.set(datosBase, SetOptions.merge())
-                .addOnSuccessListener {
-                    println(
-                        if (document.exists())
-                            "Datos del jugador actualizados en Firestore"
-                        else
-                            "Jugador guardado exitosamente en Firestore"
-                    )
-                }
-                .addOnFailureListener {
-                    println("Error al guardar/actualizar jugador: ${it.message}")
-                }
+            if (!document.exists()) {
+                // Solo crear si no existe
+                val datosBase = mapOf(
+                    "nombre" to nombre,
+                    "monedas" to monedas,
+                    "partidas" to partidas,
+                    "victorias" to victorias,
+                    "palo" to palo,
+                    "latitud" to latitud,
+                    "longitud" to longitud,
+                    "victoriasPorDia" to emptyMap<String, Int>()
+                )
+
+                jugadorRef.set(datosBase)
+                    .addOnSuccessListener {
+                        println("Jugador creado en Firestore")
+                    }
+                    .addOnFailureListener {
+                        println("Error al crear jugador: ${it.message}")
+                    }
+            } else {
+                println("Jugador ya existe, no se sobrescriben los datos")
+            }
+        }.addOnFailureListener {
+            println("Error al acceder al documento del jugador: ${it.message}")
         }
     }
 }

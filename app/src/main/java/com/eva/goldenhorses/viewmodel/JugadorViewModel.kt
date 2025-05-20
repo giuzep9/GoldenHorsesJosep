@@ -19,11 +19,14 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
 
     private val _jugador = MutableStateFlow<Jugador?>(null)
     val jugador: StateFlow<Jugador?> = _jugador
+
     private val _pais = MutableStateFlow<String?>(null)
     val pais: StateFlow<String?> = _pais
 
-    // Esta función inicia sesión, obteniendo el jugador o creándolo si no existe
+    // Inicia sesión y carga al jugador actual
     fun iniciarSesion(nombre: String) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
         val disposable = repository.obtenerJugador()
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
@@ -32,26 +35,9 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
             }, { error ->
                 error.printStackTrace()
             }, {
-                // Si no existe, lo creamos con el UID
+                // Si no existe, lo creamos
                 val nuevo = Jugador(nombre = nombre)
-                insertarJugador(nuevo)
-                _jugador.value = nuevo
-            })
-        disposables.add(disposable)
-    }
-
-    fun iniciarSesionConUID(uid: String) {
-        val disposable = repository.obtenerJugadorPorUID(uid)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ jugadorExistente ->
-                _jugador.value = jugadorExistente
-            }, { error ->
-                error.printStackTrace()
-            }, {
-                // Si no existe, creamos uno nuevo
-                val nuevo = Jugador(nombre = FirebaseAuth.getInstance().currentUser?.displayName ?: "Anónimo")
-                repository.insertarJugadorConUID(uid, nuevo)
+                repository.insertarJugador(nuevo)
                     .subscribeOn(Schedulers.io())
                     .observeOn(AndroidSchedulers.mainThread())
                     .subscribe({
@@ -61,7 +47,44 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
         disposables.add(disposable)
     }
 
-    // Esta función actualiza los datos del jugador
+    // Comprueba si existe jugador y si no lo crea (por UID)
+    fun comprobarOInsertarJugador(nombre: String) {
+        val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return
+
+        val disposable = repository.obtenerJugador()
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({ jugadorExistente ->
+                _jugador.value = jugadorExistente
+            }, { error ->
+                error.printStackTrace()
+            }, {
+                val nuevoJugador = Jugador(nombre = nombre)
+                repository.insertarJugador(nuevoJugador)
+                    .subscribeOn(Schedulers.io())
+                    .observeOn(AndroidSchedulers.mainThread())
+                    .subscribe({
+                        _jugador.value = nuevoJugador
+                    }, { it.printStackTrace() })
+            })
+        disposables.add(disposable)
+    }
+
+    fun insertarJugador(jugador: Jugador) {
+        val disposable = repository.insertarJugador(jugador)
+            .subscribeOn(Schedulers.io())
+            .observeOn(AndroidSchedulers.mainThread())
+            .subscribe({
+                _jugador.value = jugador
+            }, {
+                it.printStackTrace()
+            })
+
+        disposables.add(disposable)
+    }
+
+
+    // Actualiza el jugador actual
     fun actualizarJugador(jugador: Jugador) {
         val disposable = repository.actualizarJugador(jugador)
             .subscribeOn(Schedulers.io())
@@ -74,49 +97,20 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
         disposables.add(disposable)
     }
 
-    // Esta función inserta un jugador nuevo
-    fun insertarJugador(jugador: Jugador) {
-        val disposable = repository.insertarJugador(jugador)
+    // Actualiza ubicación usando UID
+    fun actualizarUbicacion(lat: Double, lon: Double) {
+        val disposable = repository.actualizarUbicacion(lat, lon)
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
             .subscribe({
-                // El jugador se inserta correctamente
+                // Éxito
             }, {
                 it.printStackTrace()
             })
         disposables.add(disposable)
     }
 
-    // Esta función comprueba si un jugador existe y si no, lo inserta
-    fun comprobarOInsertarJugador(nombre: String) {
-        val disposable = repository.obtenerJugador()
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({ jugador ->
-                // Ya existe, no hacer nada
-            }, {
-                it.printStackTrace()
-            }, {
-                val nuevoJugador = Jugador(nombre = nombre)
-                insertarJugador(nuevoJugador)
-            })
-        disposables.add(disposable)
-    }
-
-    // Actualiza la ubicación del jugador en Firebase
-    fun actualizarUbicacion(nombre: String, lat: Double, lon: Double) {
-        val disposable = repository.actualizarUbicacion(nombre, lat, lon)
-            .subscribeOn(Schedulers.io())
-            .observeOn(AndroidSchedulers.mainThread())
-            .subscribe({
-                // Actualización exitosa
-            }, {
-                it.printStackTrace()
-            })
-        disposables.add(disposable)
-    }
-
-    // Esta función actualiza el país basado en la latitud y longitud
+    // Actualiza el país (solo UI)
     fun actualizarPaisDesdeUbicacion(context: Context, lat: Double?, lon: Double?) {
         if (lat != null && lon != null) {
             val geocoder = Geocoder(context, Locale.getDefault())
@@ -126,7 +120,6 @@ class JugadorViewModel(val repository: JugadorRepository) : ViewModel() {
         }
     }
 
-    // Limpiar los recursos cuando el ViewModel es destruido
     override fun onCleared() {
         super.onCleared()
         disposables.clear()

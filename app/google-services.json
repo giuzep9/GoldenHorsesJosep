@@ -39,6 +39,14 @@
           }
         },
         {
+          "client_id": "584379056162-lec5fe00qa0pbjtsaq697bgn1ehfcf6a.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.eva.goldenhorses",
+            "certificate_hash": "ea21c8b095e61bc084793d42d90739d0fcf72cdc"
+          }
+        },
+        {
           "client_id": "584379056162-pf16hg5stu2l3krklqj4vt5glfdrhp6s.apps.googleusercontent.com",
           "client_type": 3
         }
