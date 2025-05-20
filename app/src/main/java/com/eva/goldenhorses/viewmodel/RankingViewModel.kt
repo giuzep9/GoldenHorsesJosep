@@ -48,7 +48,7 @@ class RankingViewModel : ViewModel() {
                 }
 
             } catch (e: Exception) {
-                _error.value = "Error al cargar el ranking: ${e.localizedMessage}"
+                _error.value = "Todavía nadie ha jugado ¡Se el primero!"
                 Log.e("RankingViewModel", "Error:", e)
             }
         }
@@ -71,7 +71,7 @@ class RankingViewModel : ViewModel() {
                     onTopJugadorObtenido(null)
                 }
             } catch (e: Exception) {
-                _error.value = "Error al cargar ranking de ayer: ${e.message}"
+                _error.value = "Ayer nadie jugó, no hay premio"
                 onTopJugadorObtenido(null)
             }
         }
