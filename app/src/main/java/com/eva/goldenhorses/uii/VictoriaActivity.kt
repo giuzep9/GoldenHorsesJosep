@@ -1,7 +1,9 @@
 package com.eva.goldenhorses.uii
 
+import android.content.Context
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.media.MediaPlayer
 import android.graphics.Bitmap
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -22,17 +24,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
+import androidx.compose.ui.res.stringResource
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.ContentResolver
-import android.content.Context
 import android.graphics.Canvas
 import android.net.Uri
 import androidx.activity.result.ActivityResultLauncher
 import android.content.pm.PackageManager
 import android.os.Build
 import android.provider.CalendarContract
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.core.content.ContextCompat
 import androidx.core.app.ActivityCompat
 import androidx.core.app.NotificationCompat
@@ -61,6 +66,17 @@ class VictoriaActivity : ComponentActivity() {
                     }
                 }
             }
+
+        val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val isMusicMuted = sharedPreferences.getBoolean("isMusicMuted", false)
+
+        if (!isMusicMuted) {
+            val mediaPlayer = MediaPlayer.create(this, R.raw.victoria)
+            mediaPlayer.setOnCompletionListener {
+                it.release()
+            }
+            mediaPlayer.start()
+        }
 
         setContent {
             VictoriaScreen(caballoPalo = caballoPalo, nombreJugador = nombreJugador)
@@ -255,111 +271,118 @@ class VictoriaActivity : ComponentActivity() {
         notificationManager.notify(1001, builder.build())
     }
 
-    @Composable
-    fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
-        val context = LocalContext.current
-
-        val icono = when (caballoPalo) {
-            "Oros" -> R.drawable.cab_oros
-            "Copas" -> R.drawable.cab_copas
-            "Espadas" -> R.drawable.cab_espadas
-            "Bastos" -> R.drawable.cab_bastos
-            else -> R.drawable.mazo
-        }
-
-        Box(
-            modifier = Modifier.fillMaxSize()
-        ) {
-            // Fondo
-            Image(
-                painter = painterResource(id = R.drawable.fondo_victoria),
-                contentDescription = "Fondo victoria",
-                modifier = Modifier.fillMaxSize(),
-                contentScale = androidx.compose.ui.layout.ContentScale.Crop
-            )
-
-            // Caja de contenido centrado con fondo blanco semitransparente
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(0.8f)
-                    .heightIn(max = 450.dp)
-                    .background(Color.White.copy(alpha = 0.8f))
-                    .align(Alignment.Center)
-                    .padding(32.dp)
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxSize(),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.Center
-                ) {
-                    Text("¡Has ganado!", fontSize = 28.sp)
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    Image(
-                        painter = painterResource(id = icono),
-                        contentDescription = "Tu caballo ganador",
-                        modifier = Modifier.size(120.dp)
-                    )
-
-                    Spacer(modifier = Modifier.height(32.dp))
-
-                    Image(
-                        painter = painterResource(id = R.drawable.volver_jugar),
-                        contentDescription = "Volver a Jugar",
-                        modifier = Modifier
-                            .fillMaxWidth(0.55f)
-                            .clickable {
-                                val intent =
-                                    Intent(context, PlayerSelectionActivity::class.java).apply {
-                                        putExtra("jugador_nombre", nombreJugador)
-                                    }
-                                context.startActivity(intent)
-                            }
-                    )
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    Image(
-                        painter = painterResource(id = R.drawable.volver_inicio),
-                        contentDescription = "Volver a Inicio",
-                        modifier = Modifier
-                            .fillMaxWidth(0.55f)
-                            .clickable {
-                                SessionManager.guardarJugador(context, nombreJugador)
-                                val intent = Intent(context, HomeActivity::class.java)
-                                context.startActivity(intent)
-                            }
-                    )
-
-                }
-            }
-
-            Spacer(modifier = Modifier.height(300.dp))
-
-            Image(
-                painter = painterResource(id = R.drawable.boton_captura),
-                contentDescription = "Guardar captura",
-                modifier = Modifier
-                    .align(Alignment.Center) // centrado en pantalla
-                    .offset(y = 300.dp)
-                    .fillMaxWidth(0.55f)
-                    .clickable {
-                        val activity = context as? VictoriaActivity
-                        activity?.let {
-                            it.currentCapturedBitmap = it.captureScreen()
-                            it.createImageLauncher.launch("victoria_${System.currentTimeMillis()}.png")
-                        }
-                    }
-            )
-        }
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
     }
 }
 
+@Composable
+fun VictoriaScreen(caballoPalo: String, nombreJugador: String) {
+    val context = LocalContext.current
+    val idioma = obtenerIdioma(context)
 
-/*@Preview(showBackground = true)
+    val icono = when (caballoPalo) {
+        "Oros" -> R.drawable.cab_oros
+        "Copas" -> R.drawable.cab_copas
+        "Espadas" -> R.drawable.cab_espadas
+        "Bastos" -> R.drawable.cab_bastos
+        else -> R.drawable.mazo
+    }
+
+    val fondoVictoria = if (idioma == "en") R.drawable.fondo_victory else R.drawable.fondo_victoria
+    val botonVolverJugar = if (idioma == "en") R.drawable.boton_replay else R.drawable.volver_jugar
+    val botonVolverInicio = if (idioma == "en") R.drawable.boton_home else R.drawable.volver_inicio
+    val botonCaptura = if (idioma == "en") R.drawable.boton_screenshot else R.drawable.boton_captura
+
+    Box(
+        modifier = Modifier.fillMaxSize()
+    ) {
+        // Fondo
+        Image(
+            painter = painterResource(id = fondoVictoria),
+            contentDescription = "Fondo victoria",
+            modifier = Modifier.fillMaxSize(),
+            contentScale = androidx.compose.ui.layout.ContentScale.Crop
+        )
+
+        // Caja de contenido centrado con fondo blanco semitransparente
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(0.8f)
+                .heightIn(max = 425.dp)
+                .background(Color.White.copy(alpha = 0.8f))
+                .align(Alignment.Center)
+                .padding(32.dp)
+        ) {
+            Column(
+                modifier = Modifier.fillMaxSize(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
+                Text(text = stringResource(id = R.string.winner), fontSize = 28.sp)
+
+                Spacer(modifier = Modifier.height(24.dp))
+
+                Image(
+                    painter = painterResource(id = icono),
+                    contentDescription = "Tu caballo ganador",
+                    modifier = Modifier.size(120.dp)
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Image(
+                    painter = painterResource(id = botonVolverJugar),
+                    contentDescription = "Volver a Jugar",
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .clickable {
+                            val intent = Intent(context, PlayerSelectionActivity::class.java).apply {
+                                putExtra("jugador_nombre", nombreJugador)
+                            }
+                            context.startActivity(intent)
+                        }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Image(
+                    painter = painterResource(id = botonVolverInicio),
+                    contentDescription = "Volver a Inicio",
+                    modifier = Modifier
+                        .fillMaxWidth(0.55f)
+                        .clickable {
+                            SessionManager.guardarJugador(context, nombreJugador)
+                            val intent = Intent(context, HomeActivity::class.java)
+                            context.startActivity(intent)
+                        }
+                )
+            }
+
+            Spacer(modifier = Modifier.height(300.dp))
+        }
+
+        Image(
+            painter = painterResource(id = botonCaptura),
+            contentDescription = "Guardar captura",
+            modifier = Modifier
+                .align(Alignment.Center)
+                .fillMaxWidth(0.7f)
+                .offset(y = 310.dp)
+                .clickable {
+                    val activity = context as? VictoriaActivity
+                    activity?.let {
+                        it.currentCapturedBitmap = it.captureScreen()
+                        it.createImageLauncher.launch("victoria_${System.currentTimeMillis()}.png")
+                    }
+                }
+        )
+    }
+}
+
+@Preview(showSystemUi = true, showBackground = true)
 @Composable
 fun PreviewVictoriaScreen() {
-    VictoriaScreen(caballoPalo = "Oros", nombreJugador = "JugadorDemo")
+    VictoriaScreen(caballoPalo = "Oros", nombreJugador = "Eva")
 }
-*/

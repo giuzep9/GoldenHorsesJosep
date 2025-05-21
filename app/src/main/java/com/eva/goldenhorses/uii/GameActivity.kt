@@ -1,11 +1,15 @@
 package com.eva.goldenhorses.uii
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -17,23 +21,36 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
+import com.eva.goldenhorses.MusicService
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
-import com.eva.goldenhorses.data.AppDatabase
-import com.eva.goldenhorses.data.JugadorDAO
+//import com.eva.goldenhorses.data.AppDatabase
+//import com.eva.goldenhorses.data.JugadorDAO
 import com.eva.goldenhorses.model.*
 import com.eva.goldenhorses.repository.JugadorRepository
 import com.eva.goldenhorses.ui.theme.GoldenHorsesTheme
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
+import com.eva.goldenhorses.utils.obtenerPaisDesdeUbicacion
 import com.eva.goldenhorses.viewmodel.JugadorViewModel
 import com.eva.goldenhorses.viewmodel.JugadorViewModelFactory
+import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.FieldValue
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.SetOptions
 import io.reactivex.rxjava3.core.Completable
 import io.reactivex.rxjava3.core.Maybe
+
 
 class GameActivity : ComponentActivity() {
 
@@ -45,9 +62,8 @@ class GameActivity : ComponentActivity() {
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: return
         SessionManager.guardarJugador(this, nombreJugador)
 
-
-        val database = AppDatabase.getDatabase(applicationContext)
-        val repository = JugadorRepository(database.jugadorDAO())
+        // Usar el repositorio de Firebase en lugar de la base de datos local
+        val repository = JugadorRepository() // Repositorio Firebase
         val factory = JugadorViewModelFactory(repository)
         val jugadorViewModel = factory.create(JugadorViewModel::class.java)
 
@@ -81,7 +97,32 @@ class GameActivity : ComponentActivity() {
                 }
             }
         }
+    }
 
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
+    }
+    // Seleccionar canción
+    private val selectMusicLauncher = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        uri?.let {
+            contentResolver.takePersistableUriPermission(
+                it,
+                Intent.FLAG_GRANT_READ_URI_PERMISSION
+            )
+            val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+            sharedPreferences.edit().putString("custom_music_uri", it.toString()).apply()
+
+            // Reiniciar servicio con la nueva música
+            val musicIntent = Intent(this, MusicService::class.java).apply {
+                action = MusicService.ACTION_CHANGE_MUSIC
+                putExtra("MUSIC_URI", it.toString())
+            }
+            startService(musicIntent)
+        }
+    }
+    fun abrirSelectorMusica() {
+        selectMusicLauncher.launch(arrayOf("audio/*"))
     }
 }
 
@@ -90,6 +131,15 @@ class GameActivity : ComponentActivity() {
 fun GameScreenWithTopBar(jugador: Jugador, context: Context, viewModel: JugadorViewModel, onGameFinished: () -> Unit) {
     val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
     var isMusicMutedState by remember { mutableStateOf(false) }
+    val pais = remember(jugador) {
+        val currentJugador = jugador
+        val lat = currentJugador?.latitud
+        val lon = currentJugador?.longitud
+
+        if (lat != null && lon != null) {
+            obtenerPaisDesdeUbicacion(context, lat, lon)
+        } else null
+    }
 
     LaunchedEffect(Unit) {
         isMusicMutedState = sharedPreferences.getBoolean("isMusicMuted", false)
@@ -104,7 +154,11 @@ fun GameScreenWithTopBar(jugador: Jugador, context: Context, viewModel: JugadorV
                     isMusicMutedState = newState
                     sharedPreferences.edit().putBoolean("isMusicMuted", newState).apply()
                 },
-                jugador = jugador
+                jugador = jugador,
+                pais = pais,
+                onChangeMusicClick = {
+                    (context as? GameActivity)?.abrirSelectorMusica()
+                }
             )
         }
     ) { paddingValues ->
@@ -129,6 +183,8 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
     }
     var carreraFinalizada by remember { mutableStateOf(false) }
     val context = LocalContext.current
+    val idioma = obtenerIdioma(context)
+    val botonSacarCartaImage = if (idioma == "en") R.drawable.boton_card else R.drawable.btn_carta
 
     val imagenesCaballos = mapOf(
         "Oros" to R.drawable.cab_oros,
@@ -141,16 +197,41 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
         if (carreraFinalizada) {
             val ganador = carrera.obtenerGanador()?.palo ?: "Nadie"
             Log.d("DEBUG", "Jugador: $jugador, Palo: ${jugador.palo}, Ganador: $ganador")
-            jugador.actualizarMonedas(ganador)
-            viewModel.actualizarJugador(jugador)
 
-            // Actualizamos estadísticas del jugador
+            jugador.actualizarMonedas(ganador)
             jugador.partidas += 1
+
             if (ganador == jugador.palo) {
                 jugador.victorias += 1
+                jugador.registrarVictoriaDiaria()
+
+                val fechaHoy = SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(Date())
+                val uid = FirebaseAuth.getInstance().currentUser?.uid ?: return@LaunchedEffect
+                val db = FirebaseFirestore.getInstance()
+                val docRef = db.collection("jugadores").document(uid)
+
+                // Historial personal en subcolección
+                docRef.collection("victoriasPorDia").document(fechaHoy)
+                    .get().addOnSuccessListener { document ->
+                        val victoriasActuales = document.getLong("victorias") ?: 0
+                        val nuevasVictorias = victoriasActuales + 1
+                        docRef.collection("victoriasPorDia").document(fechaHoy)
+                            .set(mapOf("victorias" to nuevasVictorias))
+                    }
+
+                // Campo anidado en documento principal (crea si no existe)
+                docRef.set(
+                    mapOf("victoriasPorDia" to mapOf(fechaHoy to FieldValue.increment(1))),
+                    SetOptions.merge()
+                )
+
+                // Realtime Database para ranking diario
+                val repository = JugadorRepository()
+                repository.insertarJugadorEnRealtime(jugador).subscribe({}, {})
             }
 
-            onGameFinished() // Guardar en la base de datos
+            viewModel.actualizarJugador(jugador)
+            onGameFinished()
 
             val intent = if (jugador.palo == ganador) {
                 Intent(context, VictoriaActivity::class.java).apply {
@@ -167,7 +248,6 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             }
 
             context.startActivity(intent)
-            //(context as? Activity)?.finish()
         }
     }
 
@@ -177,7 +257,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
     ) {
         // Imagen de fondo
         Image(
-            painter = painterResource(id = R.drawable.pantalla_carrera),
+            painter = painterResource(id = R.drawable.pantalla_carrera2),
             contentDescription = "Fondo de la pista",
             modifier = Modifier.fillMaxSize()
         )
@@ -185,14 +265,14 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(8.dp),
+                .padding(1.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Mazo y carta sacada
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 80.dp),
+                    .padding(top = 20.dp),
                 horizontalArrangement = Arrangement.End
             ) {
                 cartaSacada?.let {
@@ -269,11 +349,9 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                     Column(
                         modifier = Modifier
                             .fillMaxHeight()
-                            .padding(top = 0.dp),
+                            .padding(top = 10.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Spacer(modifier = Modifier.height((cartasRetroceso.size).dp))
-
                         for (nivel in cartasRetroceso.indices) {
                             val nivelInvertido = cartasRetroceso.size - 1 - nivel
 
@@ -282,7 +360,7 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                                     .fillMaxWidth()
                                     .wrapContentWidth(Alignment.Start)
                                     .offset(x = 45.dp),
-                                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                                horizontalArrangement = Arrangement.spacedBy(18.dp)
                             ) {
                                 posicionesCaballos.forEach { (palo, posicion) ->
                                     if (posicion == nivelInvertido + 1 && nivelInvertido < cartasRetroceso.size) {
@@ -310,14 +388,15 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                 modifier = Modifier
                     .fillMaxWidth()
                     .wrapContentWidth(Alignment.Start)
-                    .offset(x = 110.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    .offset(x = 115.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 posicionesCaballos.keys.forEach { palo ->
                     Image(
                         painter = painterResource(id = obtenerImagenCarta(Carta(palo, 11))),
                         contentDescription = "Caballo $palo",
                         modifier = Modifier.size(60.dp)
+                            .offset(x = 4.dp),
                     )
                 }
             }
@@ -335,8 +414,8 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
             ) {
                 if (!carreraFinalizada) {
                     Image(
-                        painter = painterResource(id = R.drawable.btn_carta),
-                        contentDescription = "Sacar Carta",
+                        painter = painterResource(id = botonSacarCartaImage),
+                        contentDescription = if (idioma == "en") "Draw Card" else "Sacar Carta",
                         modifier = Modifier
                             .size(200.dp, 80.dp)
                             .wrapContentSize()
@@ -346,6 +425,19 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                             ) {
                                 cartaSacada = carrera.sacarCarta()
                                 cartaSacada?.let {
+
+                                    // Añadir sonido de carta girada si la música no está muteada
+                                    val sharedPreferences = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+                                    val isMusicMuted = sharedPreferences.getBoolean("isMusicMuted", false)
+
+                                    if (!isMusicMuted) {
+                                        val mediaPlayer = MediaPlayer.create(context, R.raw.cardsound)
+                                        mediaPlayer.start()
+                                        mediaPlayer.setOnCompletionListener {
+                                            it.release()
+                                        }
+                                    }
+
                                     // Mover el caballo según la carta extraída
                                     carrera.moverCaballo(it.palo)
                                     posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
@@ -360,6 +452,15 @@ fun GameScreen(jugador: Jugador, viewModel: JugadorViewModel, onGameFinished: ()
                                     carrera.obtenerCartasRetroceso().reversed().forEachIndexed { index, carta ->
                                         if (!cartasGiradas.contains(index) && carrera.todosCaballosAlNivel(index + 1)) {
                                             cartasGiradas.add(index)
+
+                                            // Añadir sonido de retroceso si la música no está muteada
+                                            if (!isMusicMuted) {
+                                                val mediaPlayer = MediaPlayer.create(context, R.raw.retrocesos)
+                                                mediaPlayer.start()
+                                                mediaPlayer.setOnCompletionListener {
+                                                    it.release()
+                                                }
+                                            }
                                             carrera.retrocederCaballo(carta.palo)
                                             posicionesCaballos = carrera.obtenerEstadoCarrera().associate { c -> c.palo to c.posicion }
                                         }
@@ -438,20 +539,15 @@ fun PreviewGameScreenWithTopBar() {
         palo = "Oros"
     )
 
-    val fakeDAO = object : JugadorDAO {
-        override fun insertarJugador(jugador: Jugador) = Completable.complete()
-        override fun obtenerJugador(nombre: String) = Maybe.just(fakeJugador)
-        override fun actualizarJugador(jugador: Jugador) = Completable.complete()
-    }
-
-    val fakeRepository = JugadorRepository(fakeDAO)
-    val fakeViewModel = JugadorViewModel(fakeRepository)
+    val repository = JugadorRepository() // Usamos el repositorio real que conecta con Firebase
+    val factory = JugadorViewModelFactory(repository)
+    val viewModel = factory.create(JugadorViewModel::class.java)
 
     GoldenHorsesTheme {
         GameScreenWithTopBar(
-            jugador = fakeJugador,
+            jugador = fakeJugador, // Puedes pasar un jugador de prueba aquí si lo deseas
             context = LocalContext.current,
-            viewModel = fakeViewModel,
+            viewModel = viewModel,
             onGameFinished = {}
         )
     }

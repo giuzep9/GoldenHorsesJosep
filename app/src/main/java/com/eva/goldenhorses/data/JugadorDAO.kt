@@ -1,4 +1,4 @@
-package com.eva.goldenhorses.data
+/*package com.eva.goldenhorses.data
 
 import androidx.room.*
 import com.eva.goldenhorses.model.Jugador
@@ -16,5 +16,9 @@ interface JugadorDAO {
 
     @Update
     fun actualizarJugador(jugador: Jugador): Completable
+
+    @Query("UPDATE jugadores SET latitud = :lat, longitud = :lon WHERE nombre = :nombre")
+    fun actualizarUbicacion(nombre: String, lat: Double, lon: Double): Completable
 }
 
+*/

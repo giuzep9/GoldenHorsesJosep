@@ -1,6 +1,8 @@
 package com.eva.goldenhorses.uii
 
+import android.content.Context
 import android.content.Intent
+import android.media.MediaPlayer
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -20,6 +22,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.eva.goldenhorses.R
 import com.eva.goldenhorses.SessionManager
+import com.eva.goldenhorses.utils.aplicarIdioma
+import com.eva.goldenhorses.utils.obtenerIdioma
+import androidx.compose.ui.res.stringResource
 
 class DerrotaActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -27,15 +32,31 @@ class DerrotaActivity : ComponentActivity() {
         val nombreJugador = intent.getStringExtra("jugador_nombre") ?: "Jugador"
         val ganador = intent.getStringExtra("caballo_ganador") ?: "Oros"
 
+        val sharedPreferences = getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val isMusicMuted = sharedPreferences.getBoolean("isMusicMuted", false)
+
+        if (!isMusicMuted) {
+            val mediaPlayer = MediaPlayer.create(this, R.raw.derrota)
+            mediaPlayer.setOnCompletionListener {
+                it.release()
+            }
+            mediaPlayer.start()
+        }
+
         setContent {
             DerrotaScreen(caballoGanador = ganador, nombreJugador = nombreJugador)
         }
+    }
+    override fun attachBaseContext(newBase: Context) {
+        val context = aplicarIdioma(newBase) // usa tu función LanguageUtils
+        super.attachBaseContext(context)
     }
 }
 
 @Composable
 fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
     val context = LocalContext.current
+    val idioma = obtenerIdioma(context)
     val icono = when (caballoGanador) {
         "Oros" -> R.drawable.cab_oros
         "Copas" -> R.drawable.cab_copas
@@ -44,10 +65,14 @@ fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
         else -> R.drawable.mazo
     }
 
+    val fondoDerrota = if (idioma == "en") R.drawable.fondo_you_lose else R.drawable.fondo_derrota
+    val botonVolverJugar = if (idioma == "en") R.drawable.boton_replay else R.drawable.volver_jugar
+    val botonVolverInicio = if (idioma == "en") R.drawable.boton_home else R.drawable.volver_inicio
+
     Box(modifier = Modifier.fillMaxSize()) {
         // Imagen de fondo
         Image(
-            painter = painterResource(id = R.drawable.fondo_derrota),
+            painter = painterResource(id = fondoDerrota),
             contentDescription = "Fondo derrota",
             modifier = Modifier.fillMaxSize(),
             contentScale = androidx.compose.ui.layout.ContentScale.Crop
@@ -67,7 +92,7 @@ fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                Text("Ha ganado: ", fontSize = 28.sp)
+                Text(text = stringResource(id = R.string.looser), fontSize = 28.sp)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -80,7 +105,7 @@ fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
                 Spacer(modifier = Modifier.height(32.dp))
 
                 Image(
-                    painter = painterResource(id = R.drawable.volver_jugar),
+                    painter = painterResource(id = botonVolverJugar),
                     contentDescription = "Volver a Jugar",
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
@@ -95,7 +120,7 @@ fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
                 Spacer(modifier = Modifier.height(8.dp))
 
                 Image(
-                    painter = painterResource(id = R.drawable.volver_inicio),
+                    painter = painterResource(id = botonVolverInicio),
                     contentDescription = "Volver a Inicio",
                     modifier = Modifier
                         .fillMaxWidth(0.55f)
@@ -109,7 +134,6 @@ fun DerrotaScreen(caballoGanador: String, nombreJugador: String) {
         }
     }
 }
-
 
 @Preview(showBackground = true)
 @Composable

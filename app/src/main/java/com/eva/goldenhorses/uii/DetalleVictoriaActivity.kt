@@ -23,7 +23,7 @@ class DetalleVictoriaActivity : ComponentActivity() {
                 modifier = Modifier.fillMaxSize(),
                 contentAlignment = Alignment.Center
             ) {
-                Text("Resolvista la partida en $segundos segundos", fontSize = 24.sp)
+                Text("Resolviste la partida en $segundos segundos", fontSize = 24.sp)
             }
         }
     }

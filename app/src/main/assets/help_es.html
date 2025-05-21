@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ayuda del Juego</title>
+    <style>
+        body {
+          font-family: sans-serif;
+          margin: 0;
+          padding: 1em;
+
+          color: black;
+        }
+        h1, h2 {
+          color: #3a1f01;
+        }
+        nav {
+  background: #fce072;
+  padding: 1em;
+  border-radius: 10px;
+  margin-bottom: 1em;
+  box-shadow: 2px 4px 6px rgba(0, 0, 0, 0.15);
+}
+
+nav {
+  background: #fce072;
+  padding: 1em;
+  border-radius: 12px;
+  margin-bottom: 1.5em;
+  box-shadow: inset 0 0 0 2px #e5c944;
+}
+
+nav strong {
+  font-size: 1.1em;
+  font-weight: bold;
+  display: block;
+  margin-bottom: 0.7em;
+  color: #333;
+}
+
+nav a {
+  display: block;
+  background-color: #fff5c2;
+  color: #333;
+  text-decoration: none;
+  padding: 0.6em 1em;
+  margin: 0.4em 0;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+section, .puntuación, .modos {
+  border-bottom: 3px solid #f0b31d;
+  padding-bottom: 1.2em;
+  margin-bottom: 2em;
+}
+
+
+
+        section {
+          margin-bottom: 2em;
+        }
+        .highlight {
+          background: #fff5c2;
+          padding: 0.5em;
+          border-left: 4px solid #f0b31d;
+        }
+         footer {
+        background: #fff5c2;
+          padding: 0.5em;
+          border-left: 4px solid #f0b31d;
+        }
+    </style>
+</head>
+<body>
+
+<nav>
+    <strong>Ir a:</strong>
+    <a href="#objetivo">Objetivo</a>
+    <a href="#como-jugar">Cómo Jugar</a>
+    <a href="#reglas">Reglas Especiales</a>
+    <a href="#puntuacion">Sistema de puntuación / moneda</a>
+    <a href="#modos">Modos de juego</a>
+    <a href="#modos">Opciones del juego</a>
+    <a href="#faq">Preguntas Frecuentes</a>
+    <a href="#creditos">Créditos</a>
+</nav>
+
+<section id="objetivo">
+    <h2>Objetivo del Juego</h2>
+    <p>¡Apuesta por el caballo correcto y llévalo a la victoria! El primer caballo en llegar a la meta será el ganador. Pero cuidado... ¡la mecánica de retroceso puede cambiarlo todo en cualquier momento!</p>
+</section>
+
+
+<section id="como-jugar">
+    <h2>Cómo Jugar</h2>
+    <ol>
+        <li>Los jugadores apuestan por un caballo.</li>
+        <li>Se saca una carta del mazo: el caballo de ese palo avanza una posición.</li>
+        <li>Las cartas de la izquierda indican las 7 fases de la carrera, cuando todos los caballos alcanzan una fase, se revela la carta.</li>
+        <li>El caballo del mismo palo que esa carta retrocede una posición.</li>
+        <li>Gana el caballo que supere la séptima fase y llegue a la meta.</li>
+    </ol>
+</section>
+
+
+<section id="reglas">
+    <h2>Reglas Especiales</h2>
+    <div class="highlight">
+        Un caballo nunca puede retroceder más allá del punto de partida.
+    </div>
+    <p>Las cartas de retroceso solo se revelan si todos los caballos están en su nivel o más allá.</p>
+</section>
+<section id="puntuacion">
+
+    <h2> Sistema de puntuación / monedas</h2>
+    <p>Cada caballo apuesta 20 monedas, si ganas la carrera te llevas las 20 monedas de cada uno.</p>
+    <p>si te quedas sin monedas para jugar, la administración te regala 20 monedas para poder apostar en una carrera.</p>
+
+</section>
+<section id="modos">
+
+    <h2> Modos de juego</h2>
+    <p>Por ahora, ¡juegas por tu cuenta! Pero no te preocupes, el modo multijugador está en camino</p>
+
+</section>
+<section id="opciones">
+    <h2> Opciones del Juego</h2>
+    <ul>
+        <li><strong>Captura de pantalla:</strong> Tras una victoria, podrás guardar una imagen del resultado directamente en tu dispositivo.</li>
+        <li><strong>Sonido:</strong> Puedes desactivar la música y los efectos de sonido desde el menú de opciones para jugar en silencio.</li>
+        <li><strong>Idioma:</strong> El juego está disponible en <strong>español</strong> e <strong>inglés</strong>. Puedes cambiar el idioma en cualquier momento desde la configuración.</li>
+        <li><strong>Ubicación:</strong> Si lo deseas, puedes permitir el acceso a tu ubicación para futuras funciones personalizadas. Esta opción es totalmente voluntaria.</li>
+    </ul>
+</section>
+<section id="faq">
+    <h2>Preguntas Frecuentes</h2>
+    <p><strong>¿Puede haber empate?</strong>
+        Sí. En ese caso, gana el caballo que haya recibido menos retrocesos.</p>
+
+    <p><strong>¿Qué pasa si un caballo retrocede al inicio?</strong>
+        No puede ir más atrás del punto de partida. Permanecerá allí hasta avanzar de nuevo.</p>
+</section>
+
+
+
+<section id="creditos">
+    <h2> Créditos</h2>
+    <p>Juego diseñado por DROID ENJOYERS.
+        Gracias por jugar</p>
+</section>
+<footer>
+    ¿Tienes dudas o problemas? Escríbenos a: <a href="mailto:soporte@tujuego.com" style="color: black; text-decoration: underline;">soporte@goldenhorses.com</a>
+</footer>
+
+</body>
+</html>

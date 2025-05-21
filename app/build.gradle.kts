@@ -3,6 +3,7 @@ plugins {
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.kapt)
+    id("com.google.gms.google-services")
 }
 
 android {
@@ -42,6 +43,7 @@ android {
 
 dependencies {
 
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -52,6 +54,8 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.androidx.room.common)
     implementation(libs.androidx.room.ktx)
+    implementation(libs.androidx.lifecycle.process)
+    implementation(libs.firebase.firestore.ktx)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -65,10 +69,32 @@ dependencies {
     kapt(libs.room.compiler)
 
     // RxJava 3
-    implementation("io.reactivex.rxjava3:rxjava:3.1.6")
+    implementation("io.reactivex.rxjava3:rxjava:3.1.8")
     implementation("io.reactivex.rxjava3:rxandroid:3.0.2")
 
     // Room con soporte para RxJava3
     implementation("androidx.room:room-rxjava3:2.6.1")
+
+    //Ubicación
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+    implementation(platform("com.google.firebase:firebase-bom:32.7.2"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-database")
+    implementation("com.google.firebase:firebase-firestore")
+    implementation("com.google.android.gms:play-services-auth:21.0.0")
+    // Retrofit
+    implementation ("com.squareup.retrofit2:retrofit:2.9.0")
+
+// Moshi para Retrofit
+    implementation ("com.squareup.retrofit2:converter-moshi:2.9.0")
+
+// Moshi con soporte para Kotlin
+    implementation ("com.squareup.moshi:moshi-kotlin:1.15.0")
+
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-play-services:1.6.4")
+    
+// Dependencias para Google Sign-In y Firebase Authentication
+   // implementation ("com.google.android.gms:play-services-auth:20.0.1")
+   // implementation ("com.google.firebase:firebase-auth:21.0.0")
 
 }

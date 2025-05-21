@@ -1,30 +1,24 @@
 package com.eva.goldenhorses.model
 
-import androidx.room.Entity
-import androidx.room.Ignore
-import androidx.room.PrimaryKey
+import com.google.firebase.firestore.IgnoreExtraProperties
 
-@Entity(tableName = "jugadores")
+@IgnoreExtraProperties
 data class Jugador(
-    @PrimaryKey val nombre: String, // Clave primaria única (nombre del jugador)
-    var monedas: Int = 20,         // Monedas iniciales
-    var partidas: Int = 0,          // Número total de partidas
-    var victorias: Int = 0,          // Número de partidas ganadas
+    var nombre: String = "",
+    var monedas: Int = 100,
+    var partidas: Int = 0,
+    var victorias: Int = 0, // ← victorias generales
     var palo: String = "Oros",
-    @Ignore var apuesta: Apuesta? = null // Igual, solo aplica a lógica temporal
+    var latitud: Double? = null,
+    var longitud: Double? = null,
+    var victoriasPorDia: Map<String, Int> = emptyMap(), // ← nuevas victorias diarias
+    var premioReclamado: Map<String, Boolean> = emptyMap(), // ← control de premio
+
+    @Transient var apuesta: Apuesta? = null
 ) {
-    constructor(nombre: String, monedas: Int, partidas: Int, victorias: Int) : this(
-        nombre,
-        monedas,
-        partidas,
-        victorias,
-        "Oros", // valor por defecto para que Room lo acepte
-        null
-    )
 
     fun realizarApuesta(caballo: String) {
         if (monedas <= 0) {
-            // Se le dan 20 monedas si no tiene nada
             monedas += 20
         }
 
@@ -34,9 +28,15 @@ data class Jugador(
 
     fun actualizarMonedas(ganador: String) {
         if (palo == ganador) {
-            monedas += 80 // Gana 20x4
+            monedas += 80
         }
         apuesta = null
     }
-}
 
+    fun registrarVictoriaDiaria() {
+        val hoy = java.time.LocalDate.now().toString() // Ej: "2025-05-12"
+        val nuevasVictorias = victoriasPorDia.toMutableMap()
+        nuevasVictorias[hoy] = (nuevasVictorias[hoy] ?: 0) + 1
+        victoriasPorDia = nuevasVictorias
+    }
+}

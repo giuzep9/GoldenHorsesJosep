@@ -1,0 +1,16 @@
+<resources>
+    <string name="app_name">Golden Horses</string>
+    <string name="nombre_jugador_placeholder">Player name</string>
+    <string name="introduce_nombre">You must enter your username</string>
+    <string name="numero_partidas">Games played</string>
+    <string name="victorias">Wins</string>
+    <string name="victoriasDiarias">Daily wins</string>
+    <string name="select_your_horse">Select your horse</string>
+    <string name="your_bet">Your bet:</string>
+    <string name="select_horse_toast">Select your horse</string>
+    <string name="no_coins_toast">You have no coins left! Here are 20 more so you can keep playing!</string>
+    <string name="winner">You won!</string>
+    <string name="looser">The winner was:</string>
+    <string name="default_web_client_id">584379056162-3cdbnvv7uul7hldu6ng54nnselm3dv53.apps.googleusercontent.com</string>
+
+</resources>
