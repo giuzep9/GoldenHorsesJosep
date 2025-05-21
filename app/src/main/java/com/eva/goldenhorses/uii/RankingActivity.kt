@@ -207,7 +207,7 @@ fun RankingScreen(viewModel: RankingViewModel) {
                 }
 
                 // 🔧 Solo para pruebas: botón para resetear clave y volver a ver el botón de premio
-                Button(
+                /*Button(
                     onClick = {
                         prefs.edit().remove(clavePremio).apply()
                         premioReclamado = false
@@ -217,7 +217,7 @@ fun RankingScreen(viewModel: RankingViewModel) {
                         .padding(top = 80.dp) // Ajusta para que no se solape
                 ) {
                     Text(text = "Reset Premio (debug)")
-                }
+                }*/
 
                 Image(
                     painter = painterResource(id = botonVolverInicio),
